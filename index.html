@@ -1204,9 +1204,7 @@ function updateScoresStatus() {
     const isPlan = /free plan/i.test(scoresMeta.error);
     text.textContent = isPlan
       ? 'Live scores ready — API unlocks 2026 data when tournament starts (or upgrade plan)'
-      : /not configured/i.test(scoresMeta.error)
-        ? 'Scores unavailable — add API_FOOTBALL_KEY in Netlify env vars (Builds + Functions), then redeploy'
-        : `Scores unavailable: ${scoresMeta.error}`;
+      : `Scores unavailable: ${scoresMeta.error}`;
     return;
   }
   const when = scoresMeta.updatedAt

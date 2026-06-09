@@ -1,6 +1,7 @@
 const WC_LEAGUE = 1;
 const WC_SEASON = 2026;
 const CACHE_MS = 15 * 60 * 1000;
+const API_KEY = 'c23a821c9445ad6d6c99d8cd7a731b85';
 
 let cache = { data: null, ts: 0 };
 
@@ -10,30 +11,7 @@ const headers = {
   'Cache-Control': 'public, max-age=900',
 };
 
-function getApiKey() {
-  if (process.env.API_FOOTBALL_KEY) return process.env.API_FOOTBALL_KEY;
-  try {
-    return require('./.runtime-config').apiKey || '';
-  } catch {
-    return '';
-  }
-}
-
 exports.handler = async function () {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({
-        error: 'API_FOOTBALL_KEY not configured',
-        hint: 'Netlify → Site configuration → Environment variables → add API_FOOTBALL_KEY with Builds + Functions scope, then redeploy',
-        fixtures: [],
-        updatedAt: new Date().toISOString(),
-      }),
-    };
-  }
-
   if (cache.data && Date.now() - cache.ts < CACHE_MS) {
     return { statusCode: 200, headers, body: JSON.stringify(cache.data) };
   }
@@ -41,7 +19,7 @@ exports.handler = async function () {
   try {
     const res = await fetch(
       `https://v3.football.api-sports.io/fixtures?league=${WC_LEAGUE}&season=${WC_SEASON}`,
-      { headers: { 'x-apisports-key': apiKey } }
+      { headers: { 'x-apisports-key': API_KEY } }
     );
     const json = await res.json();
 

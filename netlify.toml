@@ -1,6 +1,5 @@
 [build]
   publish = "."
-  command = "node scripts/embed-key.js"
 
 [functions]
   directory = "netlify/functions"
