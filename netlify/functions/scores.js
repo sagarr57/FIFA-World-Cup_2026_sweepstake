@@ -10,14 +10,24 @@ const headers = {
   'Cache-Control': 'public, max-age=900',
 };
 
+function getApiKey() {
+  if (process.env.API_FOOTBALL_KEY) return process.env.API_FOOTBALL_KEY;
+  try {
+    return require('./.runtime-config').apiKey || '';
+  } catch {
+    return '';
+  }
+}
+
 exports.handler = async function () {
-  const apiKey = process.env.API_FOOTBALL_KEY;
+  const apiKey = getApiKey();
   if (!apiKey) {
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         error: 'API_FOOTBALL_KEY not configured',
+        hint: 'Netlify → Site configuration → Environment variables → add API_FOOTBALL_KEY with Builds + Functions scope, then redeploy',
         fixtures: [],
         updatedAt: new Date().toISOString(),
       }),

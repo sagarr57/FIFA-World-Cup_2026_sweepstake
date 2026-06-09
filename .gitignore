@@ -1,2 +1,3 @@
 .env
 .netlify
+netlify/functions/.runtime-config.js
