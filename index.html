@@ -1709,6 +1709,28 @@ people.forEach((p, i) => { draw[p] = shuffled.slice(i*3, i*3+3).map(t => t.n); }
 const PICK_SCORING = { winner: 3, goalDiff: 2, exactScore: 5 };
 const PICK_LOCK_MS = 60 * 60 * 1000;
 const PICK_MONTHS = { Jun: 5 };
+// Schedule times in fixtures[] are UK summer time (BST = UTC+1), not GST.
+const SCHEDULE_UTC_OFFSET_H = 1;
+
+const kickoffFmtLong = new Intl.DateTimeFormat(undefined, {
+  weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+});
+const kickoffFmtTime = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' });
+
+function kickoffTzAbbr(ms) {
+  const parts = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' }).formatToParts(new Date(ms));
+  return parts.find(p => p.type === 'timeZoneName')?.value || 'local';
+}
+
+function formatKickoffLong(f) {
+  const ms = fixtureKickoffMs(f);
+  return `${kickoffFmtLong.format(ms)} ${kickoffTzAbbr(ms)}`;
+}
+
+function formatKickoffShort(f) {
+  const ms = fixtureKickoffMs(f);
+  return { time: kickoffFmtTime.format(ms), tz: kickoffTzAbbr(ms) };
+}
 
 let memberPicks = {};
 let picksDraft = {};
@@ -1726,9 +1748,10 @@ function hasMatchScore(idx) {
 }
 
 function fixtureKickoffMs(f) {
+  if (f.u) return Date.parse(f.u);
   const [day, mon] = f.d.split(' ');
   const [h, m] = f.t.split(':').map(Number);
-  return Date.UTC(2026, PICK_MONTHS[mon], Number(day), h - 4, m);
+  return Date.UTC(2026, PICK_MONTHS[mon], Number(day), h - SCHEDULE_UTC_OFFSET_H, m || 0);
 }
 
 function isPickLocked(idx, f) {
@@ -1775,7 +1798,7 @@ function pickLockTimerHtml(idx, f) {
   }
   if (info.state === 'finished') return '';
   return `<div class="pick-lock-wrap">
-    <span class="pick-kickoff">Kickoff ${f.t} GST</span>
+    <span class="pick-kickoff">Kickoff ${formatKickoffLong(f)}</span>
     <span class="pick-lock-timer ${info.urgency}" data-lock-idx="${idx}">${info.label}</span>
   </div>`;
 }
@@ -2547,9 +2570,10 @@ function showPersonFixtures(person) {
           ${!result.live && (hOwned || aOwned) ? `<span class="pts-earned">+${getMatchPoints(hOwned ? f.h : f.a, f, result) || 0}</span>` : ''}
         </div>`
       : '<span class="fix-vs">vs</span>';
+    const kick = formatKickoffShort(f);
 
     html += `<div class="fixture-row${highlight}">
-      <div class="fix-time">${f.t}<small>GST</small></div>
+      <div class="fix-time">${kick.time}<small>${kick.tz}</small></div>
       <div class="fix-team">
         <span class="flag">${hTeam.f}</span>
         <span class="name">${f.h}</span>
@@ -2587,7 +2611,7 @@ function buildPicksSection() {
   const myPts = player ? calcPickPoints(player).total : 0;
 
   let html = `<div class="section-title">My picks</div>
-    <p class="pick-intro">Predict the winner <em>and</em> score for each match before kickoff. Picks lock <strong>1 hour before</strong> the match. One entry per match per person — bonus points stack on top of your sweepstake score.</p>
+    <p class="pick-intro">Predict the winner <em>and</em> score for each match before kickoff. Picks lock <strong>1 hour before kickoff</strong> (times shown in your local timezone). One entry per match per person — bonus points stack on top of your sweepstake score.</p>
     <div class="person-tabs-wrap" style="margin-bottom:1rem">
       <div class="person-tabs-label">Who are you?</div>` +
     personSelectHtml('Who are you?', player, 'setPicksPlayer', 'Choose your name') +

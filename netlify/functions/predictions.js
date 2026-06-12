@@ -5,7 +5,8 @@ const PEOPLE = new Set([
   'Lyka', 'Heena', 'Kristelle', 'Karl', 'Ali', 'Ken', 'Jen', 'Darren',
 ]);
 
-// Kickoff times in GST (UTC+4) — used to enforce the 1-hour lock
+// Kickoff times in FIXTURES are UK summer time (BST = UTC+1) — lock 1h before kickoff UTC
+const SCHEDULE_UTC_OFFSET_H = 1;
 const FIXTURES = [
   { d: '11 Jun', t: '20:00' }, { d: '12 Jun', t: '03:00' }, { d: '12 Jun', t: '20:00' },
   { d: '13 Jun', t: '02:00' }, { d: '13 Jun', t: '20:00' }, { d: '13 Jun', t: '23:00' },
@@ -46,7 +47,7 @@ const headers = {
 function kickoffMs(f) {
   const [day, mon] = f.d.split(' ');
   const [h, m] = f.t.split(':').map(Number);
-  return Date.UTC(2026, MONTHS[mon], Number(day), h - 4, m);
+  return Date.UTC(2026, MONTHS[mon], Number(day), h - SCHEDULE_UTC_OFFSET_H, m || 0);
 }
 
 function isLocked(matchIdx) {
