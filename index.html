@@ -2041,10 +2041,38 @@ const SCORING = {
   worldCupWinner: 10
 };
 
-// Populated automatically via /api/scores (ESPN + worldcup26.ir)
+// Populated via /api/scores — merged with localStorage so finished results never vanish
 const matchResults = {};
 const teamKnockout = {};
 let scoresMeta = { updatedAt: null, error: null, loading: true, count: 0 };
+
+function loadPersistedResults() {
+  try {
+    const raw = localStorage.getItem('wcMatchResults');
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    Object.entries(saved.results || {}).forEach(([k, v]) => {
+      if (v?.h != null && !matchResults[k]) matchResults[k] = v;
+    });
+    Object.assign(teamKnockout, saved.knockout || {});
+  } catch { /* ignore */ }
+}
+
+function persistResults() {
+  try {
+    localStorage.setItem('wcMatchResults', JSON.stringify({
+      results: { ...matchResults },
+      knockout: { ...teamKnockout },
+      savedAt: new Date().toISOString(),
+    }));
+  } catch { /* ignore */ }
+}
+
+function countFinishedResults() {
+  return Object.keys(matchResults).filter(k => matchResults[k]?.h != null && !matchResults[k]?.live).length;
+}
+
+loadPersistedResults();
 
 const KNOCKOUT_ORDER = ['r32', 'r16', 'qf', 'sf', 'final'];
 
@@ -2098,28 +2126,28 @@ function deriveKnockout(apiFixtures) {
 }
 
 function applyApiScores(data) {
-  Object.keys(matchResults).forEach(k => delete matchResults[k]);
-  Object.keys(teamKnockout).forEach(k => delete teamKnockout[k]);
-  if (!data?.fixtures?.length) return 0;
+  if (!data?.fixtures?.length) return countFinishedResults();
 
   const indexMap = {};
   fixtures.forEach((f, i) => { indexMap[`${f.h}|${f.a}`] = i; });
 
-  let matched = 0;
   data.fixtures.forEach(af => {
     if ((af.status !== 'FT' && af.status !== 'LIVE') || af.h == null || af.a == null) return;
     const home = mapApiTeam(af.home);
     const away = mapApiTeam(af.away);
     if (!home || !away) return;
     const idx = indexMap[`${home}|${away}`];
-    if (idx != null) {
+    if (idx == null) return;
+    const prev = matchResults[idx];
+    if (af.status === 'FT' || !prev?.h || prev.live) {
       matchResults[idx] = { h: af.h, a: af.a, live: af.status === 'LIVE' };
-      matched++;
     }
   });
 
-  Object.assign(teamKnockout, deriveKnockout(data.fixtures));
-  return matched;
+  const ko = deriveKnockout(data.fixtures);
+  Object.keys(ko).forEach(team => { teamKnockout[team] = ko[team]; });
+  persistResults();
+  return countFinishedResults();
 }
 
 function updateScoresStatus() {
@@ -2376,9 +2404,12 @@ drawSec.appendChild(drawGrid);
 function buildLeaderboardSection() {
   const sec = document.getElementById('sec-leaderboard');
   const board = withDisplayRanks(getLeaderboard());
-  const hasResults = scoresMeta.count > 0 || Object.keys(teamKnockout).length > 0 ||
-    board.some(e => e.picks > 0);
+  const finishedMatches = countFinishedResults();
+  const hasResults = finishedMatches > 0 || scoresMeta.count > 0 ||
+    Object.keys(teamKnockout).length > 0 || board.some(e => e.sweep > 0 || e.picks > 0);
   const leaders = board.filter(e => e.rank === 1 && e.total > 0);
+  const scoresLoading = scoresMeta.loading;
+  const scoresFailed = scoresMeta.error && finishedMatches === 0 && scoresMeta.count === 0;
 
   let html = `<div class="section-title">Standings</div>
     <div class="lb-rules">
@@ -2438,10 +2469,20 @@ function buildLeaderboardSection() {
       </div>`;
     });
     html += `</div>`;
+  } else if (scoresLoading) {
+    html += `<div class="lb-empty">
+      <strong>Loading live scores…</strong><br>
+      Standings will update as soon as match results sync.
+    </div>`;
+  } else if (scoresFailed) {
+    html += `<div class="lb-empty">
+      <strong>Scores temporarily unavailable</strong><br>
+      ${scoresMeta.error} — tap Refresh above, or check back shortly.
+    </div>`;
   } else if (!hasResults) {
     html += `<div class="lb-empty">
-      <strong>Tournament hasn't started yet</strong><br>
-      Everyone is tied on 0 pts — check back once matches kick off!
+      <strong>No match results yet</strong><br>
+      Everyone is on 0 pts — standings update automatically after kickoff.
     </div>`;
   }
 

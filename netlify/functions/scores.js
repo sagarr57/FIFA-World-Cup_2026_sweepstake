@@ -117,6 +117,13 @@ async function fetchWorldCup26() {
   return fixtures;
 }
 
+// Kept when live APIs drop past results from the scoreboard window
+const KNOWN_FT = [
+  { home: 'Mexico', away: 'South Africa', h: 2, a: 0, status: 'FT', source: 'known' },
+  { home: 'South Korea', away: 'Czechia', h: 2, a: 1, status: 'FT', source: 'known' },
+  { home: 'Korea Republic', away: 'Czech Republic', h: 2, a: 1, status: 'FT', source: 'known' },
+];
+
 function mergeFixtures(espn, wc26) {
   const map = new Map();
   // worldcup26 first, ESPN overrides (better live state)
@@ -129,6 +136,12 @@ function mergeFixtures(espn, wc26) {
     if (key === 'null|null') continue;
     const prev = map.get(key);
     if (!prev || f.status === 'FT' || f.status === 'LIVE') map.set(key, f);
+  }
+  for (const f of KNOWN_FT) {
+    const key = fixtureKey(f.home, f.away);
+    if (key === 'null|null') continue;
+    const prev = map.get(key);
+    if (!prev || prev.status !== 'FT') map.set(key, f);
   }
   return [...map.values()];
 }
