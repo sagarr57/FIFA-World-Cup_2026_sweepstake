@@ -184,10 +184,12 @@
       top: 0;
       z-index: 100;
       padding: 0.75rem 1.5rem;
+      padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
       background: color-mix(in srgb, var(--bg) 85%, transparent);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
     }
+    .tab-short { display: none; }
     .tabs {
       display: flex;
       gap: 4px;
@@ -367,6 +369,34 @@
       display: flex;
       gap: 6px;
       flex-wrap: wrap;
+    }
+    .person-select-wrap { display: none; }
+    .person-select-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-faint);
+      margin-bottom: 0.5rem;
+    }
+    .person-select {
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      font-family: var(--font-body);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
     }
     .ptab {
       padding: 7px 14px;
@@ -1013,13 +1043,44 @@
       letter-spacing: 0.04em;
     }
     .pick-match {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
       gap: 8px;
-      flex-wrap: wrap;
       font-size: 14px;
       font-weight: 600;
       margin-bottom: 12px;
+      width: 100%;
+    }
+    .pick-team {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      line-height: 1.3;
+    }
+    .pick-team.home { justify-content: flex-start; }
+    .pick-team.away { justify-content: flex-end; text-align: right; flex-direction: row-reverse; }
+    .pick-team .flag { font-size: 20px; flex-shrink: 0; line-height: 1; }
+    .pick-team .name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .pick-vs {
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 4px 8px;
+      background: var(--surface);
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border);
+      flex-shrink: 0;
     }
     .pick-choices {
       display: flex;
@@ -1089,10 +1150,77 @@
       border-radius: var(--radius-pill);
       background: rgba(34, 197, 94, 0.12);
     }
+    .pick-lock-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      text-align: right;
+    }
+    .pick-kickoff {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .pick-lock-timer {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      transition: background 0.3s, color 0.3s, border-color 0.3s;
+    }
+    .pick-lock-timer.calm {
+      color: var(--accent);
+      border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+      background: var(--accent-light);
+    }
+    .pick-lock-timer.soon {
+      color: #a16207;
+      border-color: color-mix(in srgb, #eab308 40%, transparent);
+      background: #fef9c3;
+    }
+    .pick-lock-timer.urgent {
+      color: #c2410c;
+      border-color: color-mix(in srgb, #f97316 45%, transparent);
+      background: #ffedd5;
+    }
+    .pick-lock-timer.critical {
+      color: #b91c1c;
+      border-color: color-mix(in srgb, #ef4444 50%, transparent);
+      background: #fee2e2;
+      animation: lockPulse 1.2s ease infinite;
+    }
+    .pick-lock-timer.locked {
+      color: var(--text-faint);
+      background: var(--surface);
+    }
+    @keyframes lockPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.02); }
+    }
+    .pick-save.saved-flash {
+      background: #16a34a;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+    }
+    .pick-saved-toast {
+      font-size: 11px;
+      font-weight: 700;
+      color: #16a34a;
+      margin-top: 6px;
+    }
 
     @media (max-width: 768px) {
       .nav-wrap {
         padding: 0.5rem 0;
+        padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
         overflow: hidden;
       }
       .tabs {
@@ -1101,21 +1229,26 @@
         overflow-x: auto;
         flex-wrap: nowrap;
         -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
         scrollbar-width: none;
         border-radius: 0;
         border-left: none;
         border-right: none;
         padding: 4px 0.75rem;
         gap: 6px;
+        mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
       }
       .tabs::-webkit-scrollbar { display: none; }
       .tab {
         flex: 0 0 auto;
+        scroll-snap-align: start;
         min-height: 44px;
         padding: 10px 14px;
         font-size: 12px;
         white-space: nowrap;
       }
+      .tab-long { display: none; }
+      .tab-short { display: inline; }
       .lb-teams {
         white-space: normal;
         line-height: 1.4;
@@ -1128,22 +1261,69 @@
 
     @media (max-width: 600px) {
       .page { padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0px)); }
-      .hero { padding: 2rem 1rem 1.75rem; }
-      .hero h1 { font-size: 1.65rem; }
-      .hero-sub { font-size: 12px; line-height: 1.5; }
-      .hero-stats { grid-template-columns: repeat(2, 1fr); max-width: 280px; gap: 10px; }
-      .section { padding: 1.25rem 0.875rem; }
+      .hero { padding: 1.5rem 1rem 1.25rem; }
+      .hero-trophy { font-size: 40px; margin-bottom: 0.5rem; }
+      .hero-badge { margin-bottom: 0.75rem; font-size: 10px; padding: 5px 12px; }
+      .hero h1 { font-size: 1.55rem; }
+      .hero-sub { font-size: 11px; line-height: 1.45; margin-top: 0.35rem; }
+      .hero-stats { grid-template-columns: repeat(4, 1fr); max-width: 100%; gap: 6px; margin-top: 1.25rem; }
+      .stat { padding: 8px 4px; }
+      .stat-value { font-size: 16px; }
+      .stat-label { font-size: 9px; }
+      .section { padding: 1.25rem 0.875rem; scroll-margin-top: 56px; }
       .section-title { margin-bottom: 1rem; }
 
       .scores-status {
-        padding: 8px 0.875rem;
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        padding: 10px 0.875rem;
         font-size: 11px;
-        gap: 6px;
+        gap: 8px;
       }
+      .scores-status .dot { display: none; }
       .scores-refresh {
-        min-height: 32px;
-        padding: 6px 12px;
+        width: 100%;
+        min-height: 40px;
+        padding: 8px 12px;
+        font-size: 12px;
       }
+
+      .share-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .share-bar-text { text-align: center; line-height: 1.45; }
+      .share-btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 44px;
+        font-size: 13px;
+      }
+
+      .fix-header { padding: 1rem; }
+      .fix-body { padding: 0.5rem 1rem 1rem; }
+      .fix-my-teams {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+        padding-bottom: 4px;
+        margin: 0 -2px;
+        scrollbar-width: none;
+      }
+      .fix-my-teams::-webkit-scrollbar { display: none; }
+      .team-chip {
+        flex: 0 0 auto;
+        scroll-snap-align: start;
+        font-size: 12px;
+        padding: 8px 12px;
+      }
+
+      .person-tabs { display: none; }
+      .person-tabs-wrap > .person-tabs-label { display: none; }
+      .person-select-wrap { display: block; }
 
       .draw-grid { grid-template-columns: 1fr; gap: 10px; }
       .player-body { padding: 0.75rem; }
@@ -1218,43 +1398,59 @@
       .lb-name { font-size: 13px; }
 
       /* MY PICKS — mobile */
-      .pick-intro { font-size: 12px; margin-bottom: 1rem; }
+      .pick-intro { font-size: 12px; margin-bottom: 1rem; line-height: 1.5; }
       .pick-status { font-size: 11px; padding: 8px 10px; }
       .pick-view-tabs {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
         gap: 6px;
         padding: 6px;
       }
+      .pick-view-tabs::-webkit-scrollbar { display: none; }
       .pick-view-tab {
-        width: 100%;
-        text-align: left;
-        padding: 12px 14px;
-        min-height: 48px;
+        flex: 0 0 auto;
+        scroll-snap-align: start;
+        min-width: 108px;
+        text-align: center;
+        padding: 10px 12px;
+        min-height: 52px;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: space-between;
-        gap: 8px;
+        justify-content: center;
+        gap: 2px;
       }
       .pick-view-tab .count {
-        display: inline;
-        margin-top: 0;
-        margin-left: auto;
-        font-size: 10px;
-        flex-shrink: 0;
+        display: block;
+        margin-top: 2px;
+        margin-left: 0;
+        font-size: 9px;
+        line-height: 1.25;
+        opacity: 0.9;
+        white-space: normal;
       }
       .pick-card { padding: 12px; }
       .pick-meta {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
+        align-items: stretch;
+        gap: 6px;
         font-size: 10px;
       }
-      .pick-match {
-        font-size: 13px;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
+      .pick-lock-wrap,
+      .pick-lock-timer {
+        align-self: stretch;
+        text-align: center;
+        justify-content: center;
       }
+      .pick-match {
+        font-size: 12px;
+        gap: 6px;
+      }
+      .pick-team .name { -webkit-line-clamp: 3; }
       .pick-choices {
         flex-direction: column;
         gap: 8px;
@@ -1288,14 +1484,27 @@
         line-height: 1.45;
       }
       .share-bar { margin-top: 1rem !important; padding: 10px 12px; font-size: 12px; }
+
+      .group-fix {
+        flex-wrap: wrap;
+        font-size: 10px;
+        line-height: 1.4;
+      }
+      .group-fix .date { min-width: 34px; }
+
+      .fixture-row .fix-team .name { max-width: 100%; }
+      .fixture-row .result-badge,
+      .fixture-row .yours-badge { margin-left: auto; flex-shrink: 0; }
     }
 
     @media (max-width: 380px) {
       .tab { padding: 10px 11px; font-size: 11px; }
-      .pick-view-tab { font-size: 11px; }
-      .pick-view-tab .count { font-size: 9px; }
+      .pick-view-tab { font-size: 11px; min-width: 96px; }
+      .pick-view-tab .count { font-size: 8px; }
       .hero h1 { font-size: 1.45rem; }
       .lb-rules-grid { grid-template-columns: 1fr; }
+      .pick-match { font-size: 11px; }
+      .pick-team .flag { font-size: 18px; }
     }
   </style>
 </head>
@@ -1339,11 +1548,11 @@
 
   <nav class="nav-wrap" aria-label="Main navigation">
     <div class="tabs" role="tablist">
-      <button class="tab active" data-tab="draw" role="tab" aria-selected="true">Draw</button>
-      <button class="tab" data-tab="leaderboard" role="tab" aria-selected="false">Leaderboard</button>
-      <button class="tab" data-tab="fixtures" role="tab" aria-selected="false">My Fixtures</button>
-      <button class="tab" data-tab="groups" role="tab" aria-selected="false">Groups</button>
-      <button class="tab" data-tab="picks" role="tab" aria-selected="false">My Picks</button>
+      <button class="tab active" data-tab="draw" role="tab" aria-selected="true"><span class="tab-long">Draw</span><span class="tab-short">Draw</span></button>
+      <button class="tab" data-tab="leaderboard" role="tab" aria-selected="false"><span class="tab-long">Leaderboard</span><span class="tab-short">Board</span></button>
+      <button class="tab" data-tab="fixtures" role="tab" aria-selected="false"><span class="tab-long">My Fixtures</span><span class="tab-short">Fixtures</span></button>
+      <button class="tab" data-tab="groups" role="tab" aria-selected="false"><span class="tab-long">Groups</span><span class="tab-short">Groups</span></button>
+      <button class="tab" data-tab="picks" role="tab" aria-selected="false"><span class="tab-long">My Picks</span><span class="tab-short">Picks</span></button>
     </div>
   </nav>
 
@@ -1466,6 +1675,20 @@ const avatarPalette = [
 
 function initials(n) { return n.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2); }
 
+function personSelectHtml(label, selected, onChange, placeholder) {
+  let opts = '';
+  if (placeholder) {
+    opts += `<option value="" disabled${!selected ? ' selected' : ''}>${placeholder}</option>`;
+  }
+  opts += people.map(p =>
+    `<option value="${p}"${p === selected ? ' selected' : ''}>${p}</option>`
+  ).join('');
+  return `<div class="person-select-wrap">
+    <label class="person-select-label">${label}</label>
+    <select class="person-select" onchange="${onChange}(this.value)">${opts}</select>
+  </div>`;
+}
+
 function seededShuffle(arr, seed) {
   const a = [...arr]; let s = seed;
   for (let i = a.length - 1; i > 0; i--) {
@@ -1491,6 +1714,7 @@ let memberPicks = {};
 let picksDraft = {};
 let picksMeta = { loading: false, error: null, updatedAt: null };
 let picksFilter = 'upcoming';
+let pickTimerId = null;
 
 function isMatchPlayed(idx) {
   return matchResults[idx]?.h != null;
@@ -1507,13 +1731,80 @@ function isPickLocked(idx, f) {
   return Date.now() >= fixtureKickoffMs(f) - PICK_LOCK_MS;
 }
 
-function pickLockLabel(f) {
-  const closes = fixtureKickoffMs(f) - PICK_LOCK_MS;
-  const left = closes - Date.now();
-  if (left <= 0) return 'Locked';
-  const hrs = Math.floor(left / 3600000);
-  const mins = Math.floor((left % 3600000) / 60000);
-  return hrs > 0 ? `Closes in ${hrs}h ${mins}m` : `Closes in ${mins}m`;
+function getPickLockInfo(idx, f) {
+  if (matchResults[idx]?.h != null) {
+    return { state: 'finished' };
+  }
+  const closesAt = fixtureKickoffMs(f) - PICK_LOCK_MS;
+  const msLeft = closesAt - Date.now();
+  if (msLeft <= 0) {
+    return { state: 'locked', urgency: 'locked', label: '🔒 Locked' };
+  }
+
+  const hrs = Math.floor(msLeft / 3600000);
+  const mins = Math.floor((msLeft % 3600000) / 60000);
+  const secs = Math.floor((msLeft % 60000) / 1000);
+  let urgency, label;
+
+  if (msLeft < 15 * 60 * 1000) {
+    urgency = 'critical';
+    label = mins > 0 ? `⏰ ${mins}m ${secs}s to lock` : `⏰ ${secs}s to lock`;
+  } else if (msLeft < 60 * 60 * 1000) {
+    urgency = 'urgent';
+    label = `Closes in ${mins}m ${secs}s`;
+  } else if (msLeft < 3 * 60 * 60 * 1000) {
+    urgency = 'soon';
+    label = `Closes in ${hrs}h ${mins}m`;
+  } else {
+    urgency = 'calm';
+    label = hrs > 0 ? `Closes in ${hrs}h ${mins}m` : `Closes in ${mins}m`;
+  }
+
+  return { state: 'open', msLeft, closesAt, urgency, label };
+}
+
+function pickLockTimerHtml(idx, f) {
+  const info = getPickLockInfo(idx, f);
+  if (info.state === 'locked') {
+    return `<span class="pick-lock-timer locked">🔒 Locked</span>`;
+  }
+  if (info.state === 'finished') return '';
+  return `<div class="pick-lock-wrap">
+    <span class="pick-kickoff">Kickoff ${f.t} GST</span>
+    <span class="pick-lock-timer ${info.urgency}" data-lock-idx="${idx}">${info.label}</span>
+  </div>`;
+}
+
+function updatePickCountdowns() {
+  if (!document.getElementById('sec-picks')?.classList.contains('active')) return;
+  let needsRebuild = false;
+  document.querySelectorAll('[data-lock-idx]').forEach(el => {
+    const idx = Number(el.dataset.lockIdx);
+    const f = fixtures[idx];
+    if (!f) return;
+    const info = getPickLockInfo(idx, f);
+    if (info.state === 'locked') {
+      needsRebuild = true;
+      return;
+    }
+    if (info.state !== 'open') return;
+    el.className = `pick-lock-timer ${info.urgency}`;
+    el.textContent = info.label;
+  });
+  if (needsRebuild) buildPicksSection();
+}
+
+function startPickCountdown() {
+  stopPickCountdown();
+  updatePickCountdowns();
+  pickTimerId = setInterval(updatePickCountdowns, 1000);
+}
+
+function stopPickCountdown() {
+  if (pickTimerId) {
+    clearInterval(pickTimerId);
+    pickTimerId = null;
+  }
 }
 
 function pickStorageKey(player, idx) {
@@ -1632,11 +1923,33 @@ async function saveMemberPick(matchIdx) {
     });
     const data = await readPredictionsResponse(res);
     if (!res.ok) throw new Error(data.error || 'Could not save your pick. Try again.');
+    delete picksDraft[matchIdx];
     await loadPredictions();
+    if (btn) {
+      btn.textContent = '✓ Saved!';
+      btn.classList.add('saved-flash');
+      const card = document.querySelector(`[data-pick-card="${matchIdx}"]`);
+      if (card && !card.querySelector('.pick-saved-toast')) {
+        const toast = document.createElement('div');
+        toast.className = 'pick-saved-toast';
+        toast.textContent = 'Pick saved — everyone in the group can see it after refresh.';
+        card.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+      }
+      setTimeout(() => {
+        btn.classList.remove('saved-flash');
+        btn.textContent = getSavedPick(player, matchIdx) ? 'Update pick' : 'Save pick';
+        btn.disabled = false;
+      }, 2000);
+      return;
+    }
   } catch (e) {
     alert(e.message.includes('valid JSON') ? friendlyPredictionsError(e.message, 0) : e.message);
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Save pick'; }
+    if (btn && !btn.classList.contains('saved-flash')) {
+      btn.disabled = false;
+      btn.textContent = getSavedPick(player, matchIdx) ? 'Update pick' : 'Save pick';
+    }
   }
 }
 
@@ -1956,6 +2269,7 @@ function showSection(id, btn) {
   if (tabBtn) {
     tabBtn.classList.add('active');
     tabBtn.setAttribute('aria-selected', 'true');
+    tabBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   }
   if (id === 'leaderboard') buildLeaderboardSection();
   if (id === 'fixtures') {
@@ -1963,7 +2277,12 @@ function showSection(id, btn) {
     else if (activePlayer) showPersonFixtures(activePlayer);
   }
   if (id === 'groups' && !document.querySelector('.group-card')) buildGroupsSection();
-  if (id === 'picks') buildPicksSection();
+  if (id === 'picks') {
+    buildPicksSection();
+    startPickCountdown();
+  } else {
+    stopPickCountdown();
+  }
   updateUrl(id, activePlayer);
 }
 
@@ -2125,7 +2444,9 @@ function buildFixturesSection() {
 
   const ptabsWrap = document.createElement('div');
   ptabsWrap.className = 'person-tabs-wrap';
-  ptabsWrap.innerHTML = '<div class="person-tabs-label">Select player</div>';
+  ptabsWrap.innerHTML =
+    '<div class="person-tabs-label">Select player</div>' +
+    personSelectHtml('Select player', activePlayer || people[0], 'showPersonFixtures');
   const ptabsDiv = document.createElement('div');
   ptabsDiv.className = 'person-tabs';
   people.forEach(p => {
@@ -2151,6 +2472,7 @@ function showPersonFixtures(person) {
   document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
   const btn = document.querySelector(`.ptab:nth-child(${people.indexOf(person)+1})`);
   if (btn) btn.classList.add('active');
+  document.querySelectorAll('#sec-fixtures .person-select').forEach(sel => { sel.value = person; });
   const myNames = draw[person];
   const myTeams = myNames.map(n => getTeam(n));
   const myFix = fixtures.map((f, i) => ({ ...f, idx: i })).filter(f => myNames.includes(f.h) || myNames.includes(f.a));
@@ -2238,8 +2560,9 @@ function buildPicksSection() {
   let html = `<div class="section-title">My picks</div>
     <p class="pick-intro">Predict the winner <em>and</em> score for each match before kickoff. Picks lock <strong>1 hour before</strong> the match. One entry per match per person — bonus points stack on top of your sweepstake score.</p>
     <div class="person-tabs-wrap" style="margin-bottom:1rem">
-      <div class="person-tabs-label">Who are you?</div>
-      <div class="person-tabs">` +
+      <div class="person-tabs-label">Who are you?</div>` +
+    personSelectHtml('Who are you?', player, 'setPicksPlayer', 'Choose your name') +
+    `<div class="person-tabs">` +
     people.map(p =>
       `<button class="ptab${player === p ? ' active' : ''}" onclick="setPicksPlayer('${p}')">${p}</button>`
     ).join('') +
@@ -2295,16 +2618,16 @@ function buildPicksSection() {
       lastDate = f.d;
     }
 
-    const status = done
-      ? `FT ${result.h}–${result.a}${pts != null ? ` · <span class="pick-result-pts">+${pts} pts</span>` : ''}`
-      : lockedMatch ? 'Locked' : pickLockLabel(f);
+    const statusHtml = done
+      ? `<span class="pick-lock-timer calm">FT ${result.h}–${result.a}${pts != null ? ` · <span class="pick-result-pts">+${pts} pts</span>` : ''}</span>`
+      : pickLockTimerHtml(f.idx, f);
 
     html += `<div class="pick-card${lockedMatch ? ' locked' : ''}${saved ? ' saved' : ''}" data-pick-card="${f.idx}">
-      <div class="pick-meta"><span>Group ${f.g} · ${f.t} GST</span><span>${status}</span></div>
+      <div class="pick-meta"><span>Group ${f.g} · ${f.d}</span>${statusHtml}</div>
       <div class="pick-match">
-        <span>${getTeam(f.h).f} ${f.h}</span>
-        <span style="color:var(--text-faint)">vs</span>
-        <span>${getTeam(f.a).f} ${f.a}</span>
+        <div class="pick-team home"><span class="flag">${getTeam(f.h).f}</span><span class="name">${f.h}</span></div>
+        <span class="pick-vs">vs</span>
+        <div class="pick-team away"><span class="flag">${getTeam(f.a).f}</span><span class="name">${f.a}</span></div>
       </div>`;
 
     if (done) {
@@ -2315,7 +2638,7 @@ function buildPicksSection() {
         html += `<div class="pick-no-pick">No pick submitted for this match</div>`;
       }
     } else if (saved && lockedMatch) {
-      html += `<div class="pick-saved-label">Your pick: ${pickOutcomeLabel(f, saved.pick)} · ${saved.scoreH}–${saved.scoreA} · Locked in</div>`;
+      html += `<div class="pick-saved-label">✓ Your pick: ${pickOutcomeLabel(f, saved.pick)} · ${saved.scoreH}–${saved.scoreA} · Locked in</div>`;
     } else if (player && !lockedMatch) {
       const pick = draft.pick || '';
       const scoreH = draft.scoreH ?? '';
@@ -2341,6 +2664,9 @@ function buildPicksSection() {
 
   html += '</div>';
   sec.innerHTML = html;
+  if (document.getElementById('sec-picks').classList.contains('active')) {
+    updatePickCountdowns();
+  }
 }
 
 /* BUILD GROUPS */
@@ -2405,6 +2731,7 @@ function buildGroupsSection() {
 
   if (startTab === 'leaderboard') document.title = 'Leaderboard · World Cup 2026 Sweepstake';
   if (startTab !== 'draw') showSection(startTab);
+  else stopPickCountdown();
   loadScores();
   loadPredictions();
   setInterval(loadScores, 3 * 60 * 1000);
