@@ -1717,6 +1717,11 @@ let picksFilter = 'upcoming';
 let pickTimerId = null;
 
 function isMatchPlayed(idx) {
+  const r = matchResults[idx];
+  return r?.h != null && !r.live;
+}
+
+function hasMatchScore(idx) {
   return matchResults[idx]?.h != null;
 }
 
@@ -1727,7 +1732,7 @@ function fixtureKickoffMs(f) {
 }
 
 function isPickLocked(idx, f) {
-  if (matchResults[idx]?.h != null) return true;
+  if (hasMatchScore(idx)) return true;
   return Date.now() >= fixtureKickoffMs(f) - PICK_LOCK_MS;
 }
 
@@ -1838,8 +1843,8 @@ function calcPickPoints(person) {
   let correct = 0;
   fixtures.forEach((f, i) => {
     const saved = getSavedPick(person, i);
+    if (!saved || !isMatchPlayed(i)) return;
     const result = matchResults[i];
-    if (!saved || !result || result.h == null) return;
     const pts = scoreMemberPick(saved, result);
     total += pts;
     if (pts > 0) correct++;
@@ -1956,6 +1961,15 @@ async function saveMemberPick(matchIdx) {
 function setPickDraft(matchIdx, field, value) {
   const existing = picksDraft[matchIdx] || getSavedPick(picksPlayer(), matchIdx) || {};
   picksDraft[matchIdx] = { ...existing, [field]: value };
+  if (field === 'scoreH' || field === 'scoreA') {
+    if (picksDraft[matchIdx].pick === 'draw' && field === 'scoreH') {
+      picksDraft[matchIdx].scoreA = picksDraft[matchIdx].scoreH;
+      const card = document.querySelector(`[data-pick-card="${matchIdx}"]`);
+      const inputs = card?.querySelectorAll('.pick-score-row input');
+      if (inputs?.[1]) inputs[1].value = picksDraft[matchIdx].scoreH;
+    }
+    return;
+  }
   if (field === 'pick') {
     if (value === 'home') {
       let sh = Number(picksDraft[matchIdx].scoreH ?? 1);
@@ -1977,10 +1991,6 @@ function setPickDraft(matchIdx, field, value) {
       picksDraft[matchIdx].scoreA = s;
     }
   }
-  if (field === 'scoreH' || field === 'scoreA') {
-    const pick = picksDraft[matchIdx].pick;
-    if (pick === 'draw') picksDraft[matchIdx].scoreA = picksDraft[matchIdx].scoreH;
-  }
   buildPicksSection();
 }
 
@@ -1988,10 +1998,16 @@ function picksPlayer() {
   return activePlayer || localStorage.getItem('wcPicksPlayer') || null;
 }
 
+function defaultPlayer() {
+  return picksPlayer() || people[0];
+}
+
 function setPicksPlayer(name) {
+  if (!name || !people.includes(name)) return;
   activePlayer = name;
   localStorage.setItem('wcPicksPlayer', name);
-  buildPicksSection();
+  if (document.getElementById('fixture-view')) showPersonFixtures(name);
+  if (document.getElementById('sec-picks')?.classList.contains('active')) buildPicksSection();
 }
 
 /* ── SCORING (update matchResults & teamKnockout as tournament progresses) ── */
@@ -2068,13 +2084,13 @@ function applyApiScores(data) {
 
   let matched = 0;
   data.fixtures.forEach(af => {
-    if (af.status !== 'FT' || af.h == null || af.a == null) return;
+    if ((af.status !== 'FT' && af.status !== 'LIVE') || af.h == null || af.a == null) return;
     const home = mapApiTeam(af.home);
     const away = mapApiTeam(af.away);
     if (!home || !away) return;
     const idx = indexMap[`${home}|${away}`];
     if (idx != null) {
-      matchResults[idx] = { h: af.h, a: af.a };
+      matchResults[idx] = { h: af.h, a: af.a, live: af.status === 'LIVE' };
       matched++;
     }
   });
@@ -2111,12 +2127,19 @@ function updateScoresStatus() {
       : `Live scores connected · Waiting for results · ${when}`;
 }
 
+function friendlyScoresError(status) {
+  if (status === 404) {
+    return 'Scores API not found — use npm run dev locally or your Netlify URL (not a plain static server).';
+  }
+  return `Scores API ${status}`;
+}
+
 async function loadScores() {
   scoresMeta.loading = true;
   updateScoresStatus();
   try {
     const res = await fetch('/api/scores', { signal: AbortSignal.timeout(12000) });
-    if (!res.ok) throw new Error(`Scores API ${res.status}`);
+    if (!res.ok) throw new Error(friendlyScoresError(res.status));
     const data = await res.json();
     scoresMeta.updatedAt = data.updatedAt;
     scoresMeta.error = data.error;
@@ -2129,7 +2152,7 @@ async function loadScores() {
   scoresMeta.loading = false;
   updateScoresStatus();
   if (document.getElementById('sec-leaderboard').classList.contains('active')) buildLeaderboardSection();
-  if (document.querySelector('#fixture-view')) showPersonFixtures(activePlayer || people[0]);
+  if (document.querySelector('#fixture-view')) showPersonFixtures(defaultPlayer());
   if (document.getElementById('sec-picks').classList.contains('active')) buildPicksSection();
 }
 
@@ -2169,7 +2192,7 @@ function calcPlayerScore(person) {
   let group = 0, knockout = 0, wins = 0, draws = 0, losses = 0;
   fixtures.forEach((f, i) => {
     const result = matchResults[i];
-    if (!result) return;
+    if (!result || result.h == null || result.live) return;
     teams.forEach(t => {
       const p = getMatchPoints(t, f, result);
       const r = getTeamMatchResult(t, f, result);
@@ -2273,8 +2296,8 @@ function showSection(id, btn) {
   }
   if (id === 'leaderboard') buildLeaderboardSection();
   if (id === 'fixtures') {
-    if (!document.querySelector('.ptab')) buildFixturesSection();
-    else if (activePlayer) showPersonFixtures(activePlayer);
+    if (!document.getElementById('fixture-view')) buildFixturesSection();
+    else showPersonFixtures(defaultPlayer());
   }
   if (id === 'groups' && !document.querySelector('.group-card')) buildGroupsSection();
   if (id === 'picks') {
@@ -2446,7 +2469,7 @@ function buildFixturesSection() {
   ptabsWrap.className = 'person-tabs-wrap';
   ptabsWrap.innerHTML =
     '<div class="person-tabs-label">Select player</div>' +
-    personSelectHtml('Select player', activePlayer || people[0], 'showPersonFixtures');
+    personSelectHtml('Select player', defaultPlayer(), 'showPersonFixtures');
   const ptabsDiv = document.createElement('div');
   ptabsDiv.className = 'person-tabs';
   people.forEach(p => {
@@ -2464,15 +2487,21 @@ function buildFixturesSection() {
   panel.id = 'fixture-view';
   layout.appendChild(panel);
   sec.appendChild(layout);
-  showPersonFixtures(activePlayer || people[0]);
+  showPersonFixtures(defaultPlayer());
 }
 
 function showPersonFixtures(person) {
+  if (!person || !people.includes(person)) person = defaultPlayer();
   activePlayer = person;
-  document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
-  const btn = document.querySelector(`.ptab:nth-child(${people.indexOf(person)+1})`);
+  document.querySelectorAll('#sec-fixtures .ptab').forEach(t => t.classList.remove('active'));
+  const fixPtabs = document.querySelectorAll('#sec-fixtures .ptab');
+  const btn = fixPtabs[people.indexOf(person)];
   if (btn) btn.classList.add('active');
   document.querySelectorAll('#sec-fixtures .person-select').forEach(sel => { sel.value = person; });
+  document.querySelectorAll('#sec-picks .person-select').forEach(sel => { sel.value = person; });
+  document.querySelectorAll('#sec-picks .ptab').forEach(t => t.classList.remove('active'));
+  const pickTab = document.querySelectorAll('#sec-picks .ptab')[people.indexOf(person)];
+  if (pickTab) pickTab.classList.add('active');
   const myNames = draw[person];
   const myTeams = myNames.map(n => getTeam(n));
   const myFix = fixtures.map((f, i) => ({ ...f, idx: i })).filter(f => myNames.includes(f.h) || myNames.includes(f.a));
@@ -2495,7 +2524,7 @@ function showPersonFixtures(person) {
   myFix.forEach(f => {
     function teamBadge(team, owned, result) {
       if (!owned) return '';
-      if (result && result.h != null) {
+      if (result && result.h != null && !result.live) {
         const r = getTeamMatchResult(team, f, result);
         if (r) return `<span class="result-badge ${r}">${r === 'win' ? 'W' : r === 'draw' ? 'D' : 'L'}</span>`;
       }
@@ -2514,8 +2543,8 @@ function showPersonFixtures(person) {
 
     const mid = result && result.h != null
       ? `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-          <span class="fix-score">${result.h}–${result.a}</span>
-          ${(hOwned || aOwned) ? `<span class="pts-earned">+${getMatchPoints(hOwned ? f.h : f.a, f, result) || 0}</span>` : ''}
+          <span class="fix-score">${result.h}–${result.a}${result.live ? ' <small style="color:var(--accent);font-size:9px">LIVE</small>' : ''}</span>
+          ${!result.live && (hOwned || aOwned) ? `<span class="pts-earned">+${getMatchPoints(hOwned ? f.h : f.a, f, result) || 0}</span>` : ''}
         </div>`
       : '<span class="fix-vs">vs</span>';
 
@@ -2610,7 +2639,8 @@ function buildPicksSection() {
     const draft = picksDraft[f.idx] || saved || {};
     const lockedMatch = isPickLocked(f.idx, f);
     const result = matchResults[f.idx];
-    const done = result?.h != null;
+    const done = isMatchPlayed(f.idx);
+    const live = result?.live && result?.h != null;
     const pts = saved && done ? scoreMemberPick(saved, result) : null;
 
     if (f.d !== lastDate) {
@@ -2620,7 +2650,9 @@ function buildPicksSection() {
 
     const statusHtml = done
       ? `<span class="pick-lock-timer calm">FT ${result.h}–${result.a}${pts != null ? ` · <span class="pick-result-pts">+${pts} pts</span>` : ''}</span>`
-      : pickLockTimerHtml(f.idx, f);
+      : live
+        ? `<span class="pick-lock-timer urgent">🔴 LIVE ${result.h}–${result.a}</span>`
+        : pickLockTimerHtml(f.idx, f);
 
     html += `<div class="pick-card${lockedMatch ? ' locked' : ''}${saved ? ' saved' : ''}" data-pick-card="${f.idx}">
       <div class="pick-meta"><span>Group ${f.g} · ${f.d}</span>${statusHtml}</div>
@@ -2630,7 +2662,13 @@ function buildPicksSection() {
         <div class="pick-team away"><span class="flag">${getTeam(f.a).f}</span><span class="name">${f.a}</span></div>
       </div>`;
 
-    if (done) {
+    if (live) {
+      if (saved) {
+        html += `<div class="pick-saved-label">Your pick: ${pickOutcomeLabel(f, saved.pick)} · ${saved.scoreH}–${saved.scoreA} · Match in progress</div>`;
+      } else {
+        html += `<div class="pick-no-pick">No pick submitted for this match</div>`;
+      }
+    } else if (done) {
       if (saved) {
         const ptsDetail = pts > 0 ? ` · <span class="pick-result-pts">+${pts} pts</span>` : ' · 0 pts';
         html += `<div class="pick-saved-label">Your pick: ${pickOutcomeLabel(f, saved.pick)} · ${saved.scoreH}–${saved.scoreA}${ptsDetail}</div>`;
@@ -2719,9 +2757,14 @@ function buildGroupsSection() {
 
   if (urlPlayer) {
     activePlayer = urlPlayer;
+    localStorage.setItem('wcPicksPlayer', urlPlayer);
     const banner = document.getElementById('personal-banner');
     banner.style.display = 'block';
     banner.innerHTML = `Welcome <strong>${urlPlayer}</strong> — here are your teams & fixtures`;
+  } else {
+    const saved = localStorage.getItem('wcPicksPlayer');
+    const remembered = findPerson(saved);
+    if (remembered) activePlayer = remembered;
   }
 
   const tabMap = { draw: 'draw', leaderboard: 'leaderboard', fixtures: 'fixtures', groups: 'groups', picks: 'picks' };
