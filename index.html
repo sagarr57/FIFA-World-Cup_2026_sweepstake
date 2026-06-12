@@ -1110,7 +1110,7 @@ const SCORING = {
   worldCupWinner: 10
 };
 
-// Populated automatically from API-Football via /api/scores
+// Populated automatically via /api/scores (ESPN + worldcup26.ir)
 const matchResults = {};
 const teamKnockout = {};
 let scoresMeta = { updatedAt: null, error: null, loading: true, count: 0 };
@@ -1128,6 +1128,8 @@ const API_TEAM_TO_OURS = {
   'Curaçao': 'Curacao',
   'Czech Republic': 'Czechia',
   'IR Iran': 'Iran',
+  'Democratic Republic of the Congo': 'DR Congo',
+  'Türkiye': 'Turkey',
 };
 
 function mapApiTeam(name) {
@@ -1199,22 +1201,22 @@ function updateScoresStatus() {
     text.textContent = 'Loading live scores…';
     return;
   }
-  if (scoresMeta.error) {
+  if (scoresMeta.error && scoresMeta.count === 0) {
     el.classList.add('warn');
-    const isPlan = /free plan/i.test(scoresMeta.error);
-    text.textContent = isPlan
-      ? 'Live scores ready — API unlocks 2026 data when tournament starts (or upgrade plan)'
-      : `Scores unavailable: ${scoresMeta.error}`;
+    text.textContent = `Scores unavailable: ${scoresMeta.error}`;
     return;
   }
   const when = scoresMeta.updatedAt
     ? new Date(scoresMeta.updatedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
     : '';
   const n = scoresMeta.count;
+  const live = scoresMeta.live || 0;
   el.classList.add('live');
   text.textContent = n > 0
-    ? `Live scores · ${n} results synced · Updated ${when} GST`
-    : `Live scores connected · Waiting for match results · ${when}`;
+    ? `Live scores · ${n} results synced${live ? ` · ${live} live now` : ''} · Updated ${when}`
+    : live > 0
+      ? `${live} match(es) live now · Updated ${when}`
+      : `Live scores connected · Waiting for results · ${when}`;
 }
 
 async function loadScores() {
@@ -1225,6 +1227,7 @@ async function loadScores() {
     const data = await res.json();
     scoresMeta.updatedAt = data.updatedAt;
     scoresMeta.error = data.error;
+    scoresMeta.live = (data.fixtures || []).filter(f => f.status === 'LIVE').length;
     scoresMeta.count = applyApiScores(data);
   } catch (e) {
     scoresMeta.error = e.message;
@@ -1633,6 +1636,7 @@ function buildGroupsSection() {
   if (startTab === 'leaderboard') document.title = 'Leaderboard · World Cup 2026 Sweepstake';
   if (startTab !== 'draw') showSection(startTab);
   loadScores();
+  setInterval(loadScores, 3 * 60 * 1000);
 })();
 </script>
 </body>
