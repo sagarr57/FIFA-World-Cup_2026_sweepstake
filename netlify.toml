@@ -3,8 +3,14 @@
 
 [functions]
   directory = "netlify/functions"
+  node_bundler = "esbuild"
 
 [[redirects]]
   from = "/api/scores"
   to = "/.netlify/functions/scores"
+  status = 200
+
+[[redirects]]
+  from = "/api/predictions"
+  to = "/.netlify/functions/predictions"
   status = 200

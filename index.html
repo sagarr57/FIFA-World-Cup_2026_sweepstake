@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>World Cup 2026 · Sweepstake</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -69,6 +69,13 @@
       min-height: 100vh;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+    }
+
+    button, .tab, .ptab, .pick-choice, .pick-view-tab, .pick-save, .card-link-btn {
+      touch-action: manipulation;
     }
 
     .page {
@@ -732,6 +739,32 @@
       line-height: 1.2;
     }
     .podium-pts span { font-size: 11px; font-weight: 600; color: var(--text-faint); }
+    .podium-place {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-faint);
+      margin-bottom: 4px;
+    }
+    .podium-tie {
+      display: block;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .lb-tie-podium {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+    .lb-tie-podium .podium-slot {
+      flex: 1 1 140px;
+      max-width: 180px;
+    }
 
     .lb-list { display: flex; flex-direction: column; gap: 8px; }
     .lb-row {
@@ -895,29 +928,374 @@
     }
     .scores-refresh:hover { color: var(--accent); border-color: var(--accent); }
 
+    /* MY PICKS */
+    .pick-intro {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+      line-height: 1.55;
+      max-width: 680px;
+    }
+    .pick-status {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .pick-status.warn { color: #b45309; border-color: color-mix(in srgb, #b45309 30%, transparent); }
+    .pick-view-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-bottom: 1rem;
+      overflow-x: auto;
+    }
+    .pick-view-tab {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .pick-view-tab:hover { color: var(--text); background: var(--bg-elevated); }
+    .pick-view-tab.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+    .pick-view-tab .count {
+      display: block;
+      font-size: 10px;
+      font-weight: 500;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+    .pick-no-pick {
+      font-size: 12px;
+      color: var(--text-faint);
+      font-style: italic;
+    }
+    .pick-list { display: flex; flex-direction: column; gap: 10px; }
+    .pick-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .pick-card.locked { opacity: 0.85; }
+    .pick-card.saved { border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+    .pick-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+      font-size: 11px;
+      color: var(--text-faint);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .pick-match {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .pick-choices {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .pick-choice {
+      padding: 8px 12px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .pick-choice.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .pick-choice:disabled { cursor: not-allowed; opacity: 0.6; }
+    .pick-score-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .pick-score-row input {
+      width: 48px;
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+      color: var(--text);
+    }
+    .pick-save {
+      padding: 8px 16px;
+      border-radius: var(--radius-pill);
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .pick-save:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pick-saved-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .pick-result-pts {
+      font-size: 11px;
+      font-weight: 700;
+      color: #16a34a;
+      padding: 4px 8px;
+      border-radius: var(--radius-pill);
+      background: rgba(34, 197, 94, 0.12);
+    }
+
+    @media (max-width: 768px) {
+      .nav-wrap {
+        padding: 0.5rem 0;
+        overflow: hidden;
+      }
+      .tabs {
+        max-width: none;
+        margin: 0;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        padding: 4px 0.75rem;
+        gap: 6px;
+      }
+      .tabs::-webkit-scrollbar { display: none; }
+      .tab {
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding: 10px 14px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .lb-teams {
+        white-space: normal;
+        line-height: 1.4;
+      }
+      .lb-tie-podium .podium-slot {
+        flex: 1 1 100%;
+        max-width: none;
+      }
+    }
+
     @media (max-width: 600px) {
-      .hero { padding: 2.25rem 1rem 2rem; }
-      .hero-stats { grid-template-columns: repeat(2, 1fr); max-width: 280px; }
-      .section { padding: 1.25rem 1rem; }
-      .draw-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .page { padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0px)); }
+      .hero { padding: 2rem 1rem 1.75rem; }
+      .hero h1 { font-size: 1.65rem; }
+      .hero-sub { font-size: 12px; line-height: 1.5; }
+      .hero-stats { grid-template-columns: repeat(2, 1fr); max-width: 280px; gap: 10px; }
+      .section { padding: 1.25rem 0.875rem; }
+      .section-title { margin-bottom: 1rem; }
+
+      .scores-status {
+        padding: 8px 0.875rem;
+        font-size: 11px;
+        gap: 6px;
+      }
+      .scores-refresh {
+        min-height: 32px;
+        padding: 6px 12px;
+      }
+
+      .draw-grid { grid-template-columns: 1fr; gap: 10px; }
       .player-body { padding: 0.75rem; }
       .avatar { width: 36px; height: 36px; font-size: 11px; border-radius: 10px; }
       .player-name { font-size: 13px; }
       .team-row { padding: 6px 8px; font-size: 12px; }
+      .card-link-btn { min-height: 40px; font-size: 11px; }
+
       .fixture-row {
-        grid-template-columns: 48px 1fr;
-        grid-template-rows: auto auto;
-        gap: 6px 10px;
+        grid-template-columns: 44px 1fr;
+        grid-template-rows: auto auto auto;
+        gap: 6px 8px;
+        padding: 10px;
+      }
+      .fix-time { font-size: 11px; }
+      .fix-team { font-size: 12px; gap: 6px; }
+      .fix-team .name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .fix-vs { display: none; }
       .fix-team.right { justify-content: flex-start; flex-direction: row; text-align: left; }
+      .fixture-row > :nth-child(3) {
+        grid-column: 1 / -1;
+        justify-self: center;
+        padding: 4px 0;
+      }
+      .fixture-row .fix-team.right {
+        grid-column: 1 / -1;
+        padding-top: 2px;
+        border-top: 1px dashed var(--border);
+      }
+
+      .person-tabs-wrap { padding: 0.75rem; }
+      .person-tabs { gap: 5px; }
+      .ptab {
+        min-height: 40px;
+        padding: 8px 12px;
+        font-size: 11px;
+      }
+
       .groups-grid { grid-template-columns: 1fr; }
-      .nav-wrap { padding: 0.5rem 1rem; }
-      .tabs { max-width: 100%; }
-      .tab { padding: 9px 8px; font-size: 11px; }
-      .lb-podium { grid-template-columns: 1fr; max-width: 280px; }
+      .personal-banner { margin: 0 0.875rem; font-size: 13px; }
+
+      .lb-rules { padding: 0.875rem 1rem; }
+      .lb-rules-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+      .lb-rule { padding: 8px; font-size: 11px; }
+      .lb-rule strong { font-size: 16px; }
+
+      .lb-podium { grid-template-columns: 1fr; max-width: 100%; gap: 8px; }
+      .podium-slot.first { padding-top: 14px; }
       .podium-slot.second, .podium-slot.third { margin-bottom: 0; }
-      .personal-banner { margin: 0 1rem; }
+
+      .lb-row {
+        grid-template-columns: 28px 36px 1fr;
+        grid-template-rows: auto auto;
+        gap: 8px 10px;
+        padding: 10px 12px;
+      }
+      .lb-score-col {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        text-align: left;
+        padding-top: 8px;
+        margin-top: 2px;
+        border-top: 1px solid var(--border);
+      }
+      .lb-total { font-size: 18px; }
+      .lb-name { font-size: 13px; }
+
+      /* MY PICKS — mobile */
+      .pick-intro { font-size: 12px; margin-bottom: 1rem; }
+      .pick-status { font-size: 11px; padding: 8px 10px; }
+      .pick-view-tabs {
+        flex-direction: column;
+        gap: 6px;
+        padding: 6px;
+      }
+      .pick-view-tab {
+        width: 100%;
+        text-align: left;
+        padding: 12px 14px;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .pick-view-tab .count {
+        display: inline;
+        margin-top: 0;
+        margin-left: auto;
+        font-size: 10px;
+        flex-shrink: 0;
+      }
+      .pick-card { padding: 12px; }
+      .pick-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        font-size: 10px;
+      }
+      .pick-match {
+        font-size: 13px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      .pick-choices {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .pick-choice {
+        width: 100%;
+        min-height: 44px;
+        padding: 12px 14px;
+        font-size: 13px;
+        text-align: center;
+      }
+      .pick-score-row {
+        width: 100%;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .pick-score-row input {
+        width: 56px;
+        min-height: 44px;
+        font-size: 16px;
+      }
+      .pick-save {
+        width: 100%;
+        min-height: 44px;
+        padding: 12px 16px;
+        font-size: 14px;
+      }
+      .pick-saved-label, .pick-no-pick {
+        font-size: 11px;
+        line-height: 1.45;
+      }
+      .share-bar { margin-top: 1rem !important; padding: 10px 12px; font-size: 12px; }
+    }
+
+    @media (max-width: 380px) {
+      .tab { padding: 10px 11px; font-size: 11px; }
+      .pick-view-tab { font-size: 11px; }
+      .pick-view-tab .count { font-size: 9px; }
+      .hero h1 { font-size: 1.45rem; }
+      .lb-rules-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -965,6 +1343,7 @@
       <button class="tab" data-tab="leaderboard" role="tab" aria-selected="false">Leaderboard</button>
       <button class="tab" data-tab="fixtures" role="tab" aria-selected="false">My Fixtures</button>
       <button class="tab" data-tab="groups" role="tab" aria-selected="false">Groups</button>
+      <button class="tab" data-tab="picks" role="tab" aria-selected="false">My Picks</button>
     </div>
   </nav>
 
@@ -975,6 +1354,7 @@
     <div id="sec-leaderboard" class="section" role="tabpanel"></div>
     <div id="sec-fixtures" class="section" role="tabpanel"></div>
     <div id="sec-groups" class="section" role="tabpanel"></div>
+    <div id="sec-picks" class="section" role="tabpanel"></div>
   </main>
 </div>
 
@@ -1102,6 +1482,205 @@ const shuffled = seededShuffle(allTeams, 20260611);
 const draw = {};
 people.forEach((p, i) => { draw[p] = shuffled.slice(i*3, i*3+3).map(t => t.n); });
 
+/* ── MEMBER PICKS (saved via /api/predictions on Netlify) ── */
+const PICK_SCORING = { winner: 3, goalDiff: 2, exactScore: 5 };
+const PICK_LOCK_MS = 60 * 60 * 1000;
+const PICK_MONTHS = { Jun: 5 };
+
+let memberPicks = {};
+let picksDraft = {};
+let picksMeta = { loading: false, error: null, updatedAt: null };
+let picksFilter = 'upcoming';
+
+function isMatchPlayed(idx) {
+  return matchResults[idx]?.h != null;
+}
+
+function fixtureKickoffMs(f) {
+  const [day, mon] = f.d.split(' ');
+  const [h, m] = f.t.split(':').map(Number);
+  return Date.UTC(2026, PICK_MONTHS[mon], Number(day), h - 4, m);
+}
+
+function isPickLocked(idx, f) {
+  if (matchResults[idx]?.h != null) return true;
+  return Date.now() >= fixtureKickoffMs(f) - PICK_LOCK_MS;
+}
+
+function pickLockLabel(f) {
+  const closes = fixtureKickoffMs(f) - PICK_LOCK_MS;
+  const left = closes - Date.now();
+  if (left <= 0) return 'Locked';
+  const hrs = Math.floor(left / 3600000);
+  const mins = Math.floor((left % 3600000) / 60000);
+  return hrs > 0 ? `Closes in ${hrs}h ${mins}m` : `Closes in ${mins}m`;
+}
+
+function pickStorageKey(player, idx) {
+  return `${player}|${idx}`;
+}
+
+function getSavedPick(player, idx) {
+  return memberPicks[pickStorageKey(player, idx)] || null;
+}
+
+function pickOutcomeLabel(f, pick) {
+  if (pick === 'home') return `${getTeam(f.h).f} ${f.h}`;
+  if (pick === 'away') return `${getTeam(f.a).f} ${f.a}`;
+  return 'Draw';
+}
+
+function scoreMemberPick(pick, result) {
+  if (!pick || !result || result.h == null || result.a == null) return 0;
+  const actual = result.h === result.a ? 'draw' : result.h > result.a ? 'home' : 'away';
+  let pts = 0;
+  if (pick.pick === actual) pts += PICK_SCORING.winner;
+  const predDiff = pick.scoreH - pick.scoreA;
+  const actualDiff = result.h - result.a;
+  if (pick.pick === actual && predDiff === actualDiff) pts += PICK_SCORING.goalDiff;
+  if (pick.scoreH === result.h && pick.scoreA === result.a) pts += PICK_SCORING.exactScore;
+  return pts;
+}
+
+function calcPickPoints(person) {
+  let total = 0;
+  let correct = 0;
+  fixtures.forEach((f, i) => {
+    const saved = getSavedPick(person, i);
+    const result = matchResults[i];
+    if (!saved || !result || result.h == null) return;
+    const pts = scoreMemberPick(saved, result);
+    total += pts;
+    if (pts > 0) correct++;
+  });
+  return { total, correct };
+}
+
+function friendlyPredictionsError(raw, status) {
+  const text = String(raw || '');
+  if (/MissingBlob/i.test(text)) {
+    return 'Predictions need the Netlify server. Run npm run dev locally, or open your deployed Netlify site — not by double-clicking index.html.';
+  }
+  if (status === 404 || text.includes('<!DOCTYPE')) {
+    return 'Predictions API not found. Run npm run dev locally, or redeploy on Netlify.';
+  }
+  if (status === 503) {
+    return 'Predictions storage is starting up. Refresh in a minute after redeploying.';
+  }
+  if (/failed to fetch|network|load/i.test(text)) {
+    return 'Could not reach the predictions server. Check your connection and try again.';
+  }
+  return text.slice(0, 120) || 'Could not load predictions. Try again.';
+}
+
+async function readPredictionsResponse(res) {
+  const text = await res.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(friendlyPredictionsError(text, res.status));
+  }
+}
+
+async function loadPredictions() {
+  picksMeta.loading = true;
+  try {
+    const res = await fetch('/api/predictions', { signal: AbortSignal.timeout(12000) });
+    const data = await readPredictionsResponse(res);
+    if (!res.ok) throw new Error(data.error || friendlyPredictionsError('', res.status));
+    memberPicks = {};
+    (data.picks || []).forEach(p => {
+      memberPicks[pickStorageKey(p.player, p.matchIdx)] = p;
+    });
+    picksMeta.error = null;
+    picksMeta.updatedAt = data.updatedAt;
+  } catch (e) {
+    picksMeta.error = e.message.includes('valid JSON')
+      ? friendlyPredictionsError(e.message, 0)
+      : e.message;
+  }
+  picksMeta.loading = false;
+  if (document.getElementById('sec-picks').classList.contains('active')) buildPicksSection();
+  if (document.getElementById('sec-leaderboard').classList.contains('active')) buildLeaderboardSection();
+}
+
+async function saveMemberPick(matchIdx) {
+  const player = picksPlayer();
+  if (!player) return alert('Select your name first');
+  const f = fixtures[matchIdx];
+  if (isPickLocked(matchIdx, f)) return alert('Predictions are locked for this match');
+
+  const draft = picksDraft[matchIdx] || getSavedPick(player, matchIdx) || {};
+  const card = document.querySelector(`[data-pick-card="${matchIdx}"]`);
+  const inputs = card?.querySelectorAll('.pick-score-row input');
+  const pick = draft.pick;
+  const scoreH = inputs?.[0] ? Number(inputs[0].value) : Number(draft.scoreH);
+  const scoreA = inputs?.[1] ? Number(inputs[1].value) : Number(draft.scoreA);
+  if (!pick) return alert('Choose who you think will win (or draw)');
+  if (!Number.isInteger(scoreH) || !Number.isInteger(scoreA)) return alert('Enter a predicted score');
+
+  const btn = document.querySelector(`[data-save-pick="${matchIdx}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  try {
+    const res = await fetch('/api/predictions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ player, matchIdx, pick, scoreH, scoreA }),
+      signal: AbortSignal.timeout(12000),
+    });
+    const data = await readPredictionsResponse(res);
+    if (!res.ok) throw new Error(data.error || 'Could not save your pick. Try again.');
+    await loadPredictions();
+  } catch (e) {
+    alert(e.message.includes('valid JSON') ? friendlyPredictionsError(e.message, 0) : e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save pick'; }
+  }
+}
+
+function setPickDraft(matchIdx, field, value) {
+  const existing = picksDraft[matchIdx] || getSavedPick(picksPlayer(), matchIdx) || {};
+  picksDraft[matchIdx] = { ...existing, [field]: value };
+  if (field === 'pick') {
+    if (value === 'home') {
+      let sh = Number(picksDraft[matchIdx].scoreH ?? 1);
+      let sa = Number(picksDraft[matchIdx].scoreA ?? 0);
+      if (sh <= sa) { sh = 1; sa = 0; }
+      picksDraft[matchIdx].scoreH = sh;
+      picksDraft[matchIdx].scoreA = sa;
+    }
+    if (value === 'away') {
+      let sh = Number(picksDraft[matchIdx].scoreH ?? 0);
+      let sa = Number(picksDraft[matchIdx].scoreA ?? 1);
+      if (sa <= sh) { sh = 0; sa = 1; }
+      picksDraft[matchIdx].scoreH = sh;
+      picksDraft[matchIdx].scoreA = sa;
+    }
+    if (value === 'draw') {
+      const s = Number(picksDraft[matchIdx].scoreH ?? 1);
+      picksDraft[matchIdx].scoreH = s;
+      picksDraft[matchIdx].scoreA = s;
+    }
+  }
+  if (field === 'scoreH' || field === 'scoreA') {
+    const pick = picksDraft[matchIdx].pick;
+    if (pick === 'draw') picksDraft[matchIdx].scoreA = picksDraft[matchIdx].scoreH;
+  }
+  buildPicksSection();
+}
+
+function picksPlayer() {
+  return activePlayer || localStorage.getItem('wcPicksPlayer') || null;
+}
+
+function setPicksPlayer(name) {
+  activePlayer = name;
+  localStorage.setItem('wcPicksPlayer', name);
+  buildPicksSection();
+}
+
 /* ── SCORING (update matchResults & teamKnockout as tournament progresses) ── */
 const SCORING = {
   win: 3,
@@ -1223,7 +1802,8 @@ async function loadScores() {
   scoresMeta.loading = true;
   updateScoresStatus();
   try {
-    const res = await fetch('/api/scores');
+    const res = await fetch('/api/scores', { signal: AbortSignal.timeout(12000) });
+    if (!res.ok) throw new Error(`Scores API ${res.status}`);
     const data = await res.json();
     scoresMeta.updatedAt = data.updatedAt;
     scoresMeta.error = data.error;
@@ -1237,6 +1817,7 @@ async function loadScores() {
   updateScoresStatus();
   if (document.getElementById('sec-leaderboard').classList.contains('active')) buildLeaderboardSection();
   if (document.querySelector('#fixture-view')) showPersonFixtures(activePlayer || people[0]);
+  if (document.getElementById('sec-picks').classList.contains('active')) buildPicksSection();
 }
 
 function getMatchPoints(team, f, result) {
@@ -1286,13 +1867,37 @@ function calcPlayerScore(person) {
     });
   });
   teams.forEach(t => { knockout += getKnockoutPoints(t); });
-  return { group, knockout, total: group + knockout, wins, draws, losses, teams };
+  const picks = calcPickPoints(person);
+  const sweep = group + knockout;
+  return {
+    group, knockout, sweep, picks: picks.total, pickWins: picks.correct,
+    total: sweep + picks.total, wins, draws, losses, teams,
+  };
 }
 
 function getLeaderboard() {
   return people
     .map(p => ({ person: p, ...calcPlayerScore(p), idx: people.indexOf(p) }))
-    .sort((a, b) => b.total - a.total || b.group - a.group || a.person.localeCompare(b.person));
+    .sort((a, b) => b.total - a.total || b.sweep - a.sweep || b.picks - a.picks || a.person.localeCompare(b.person));
+}
+
+function withDisplayRanks(board) {
+  const ranked = [];
+  for (let i = 0; i < board.length; i++) {
+    const entry = board[i];
+    let rank = i + 1;
+    if (i > 0 && entry.total === board[i - 1].total) rank = ranked[i - 1].rank;
+    const tiedWith = i > 0 && entry.total === board[i - 1].total;
+    ranked.push({ ...entry, rank, tiedWith });
+  }
+  return ranked;
+}
+
+function formatLeaderNames(entries) {
+  if (!entries.length) return '';
+  if (entries.length === 1) return entries[0].person;
+  if (entries.length === 2) return `${entries[0].person} & ${entries[1].person}`;
+  return `${entries.slice(0, -1).map(e => e.person).join(', ')} & ${entries[entries.length - 1].person}`;
 }
 
 /* ── URL & SHARING ── */
@@ -1358,6 +1963,7 @@ function showSection(id, btn) {
     else if (activePlayer) showPersonFixtures(activePlayer);
   }
   if (id === 'groups' && !document.querySelector('.group-card')) buildGroupsSection();
+  if (id === 'picks') buildPicksSection();
   updateUrl(id, activePlayer);
 }
 
@@ -1404,31 +2010,64 @@ drawSec.appendChild(drawGrid);
 /* BUILD LEADERBOARD */
 function buildLeaderboardSection() {
   const sec = document.getElementById('sec-leaderboard');
-  const board = getLeaderboard();
-  const hasResults = scoresMeta.count > 0 || Object.keys(teamKnockout).length > 0;
-  const leader = board[0];
+  const board = withDisplayRanks(getLeaderboard());
+  const hasResults = scoresMeta.count > 0 || Object.keys(teamKnockout).length > 0 ||
+    board.some(e => e.picks > 0);
+  const leaders = board.filter(e => e.rank === 1 && e.total > 0);
 
   let html = `<div class="section-title">Standings</div>
     <div class="lb-rules">
       <h3>Scoring rules</h3>
       <div class="lb-rules-grid">
-        <div class="lb-rule"><strong>${SCORING.win}</strong>pts per win</div>
-        <div class="lb-rule"><strong>${SCORING.draw}</strong>pt per draw</div>
+        <div class="lb-rule"><strong>${SCORING.win}</strong>pts per team win</div>
+        <div class="lb-rule"><strong>${SCORING.draw}</strong>pt per team draw</div>
         <div class="lb-rule"><strong>+${SCORING.knockout.r32}</strong>per KO round</div>
-        <div class="lb-rule"><strong>+${SCORING.worldCupWinner}</strong>World Cup winner</div>
+        <div class="lb-rule"><strong>+${SCORING.worldCupWinner}</strong>WC winner</div>
+        <div class="lb-rule"><strong>+${PICK_SCORING.winner}</strong>pick winner</div>
+        <div class="lb-rule"><strong>+${PICK_SCORING.goalDiff}</strong>goal diff</div>
+        <div class="lb-rule"><strong>+${PICK_SCORING.exactScore}</strong>exact score</div>
+        <div class="lb-rule"><strong>1h</strong>lock before kickoff</div>
       </div>
     </div>`;
 
-  if (hasResults && board.length >= 3) {
-    const medals = ['🥇', '🥈', '🥉'];
-    const slots = ['second', 'first', 'third'];
-    const order = [1, 0, 2];
+  const tiedLeaders = board.filter(e => e.rank === 1 && e.total > 0);
+  const soloThird = board[2] && board[2].rank === 3 &&
+    board.filter(e => e.rank === 3).length === 1;
+
+  if (hasResults && tiedLeaders.length > 1) {
+    html += `<div class="lb-tie-podium">`;
+    tiedLeaders.forEach(e => {
+      html += `<div class="podium-slot first">
+        <div class="podium-place">1st · tied</div>
+        <div class="podium-medal">🥇</div>
+        <div class="podium-name">${e.person}</div>
+        <div class="podium-pts">${e.total}<span> pts</span></div>
+      </div>`;
+    });
+    html += `</div>`;
+    if (soloThird) {
+      html += `<div class="lb-podium" style="max-width:200px;margin:0 auto 1.25rem">
+        <div class="podium-slot third" style="margin:0">
+          <div class="podium-place">3rd</div>
+          <div class="podium-medal">🥉</div>
+          <div class="podium-name">${soloThird.person}</div>
+          <div class="podium-pts">${soloThird.total}<span> pts</span></div>
+        </div>
+      </div>`;
+    }
+  } else if (hasResults && board.length >= 3 && board[0].total > 0) {
+    const podiumLayout = [
+      { idx: 1, slot: 'second', medal: '🥈', label: '2nd' },
+      { idx: 0, slot: 'first', medal: '🥇', label: '1st' },
+      { idx: 2, slot: 'third', medal: '🥉', label: '3rd' },
+    ];
     html += `<div class="lb-podium">`;
-    order.forEach((ri, i) => {
-      const e = board[ri];
+    podiumLayout.forEach(({ idx, slot, medal, label }) => {
+      const e = board[idx];
       if (!e) return;
-      html += `<div class="podium-slot ${slots[i]}">
-        <div class="podium-medal">${medals[i]}</div>
+      html += `<div class="podium-slot ${slot}">
+        <div class="podium-place">${label}</div>
+        <div class="podium-medal">${medal}</div>
         <div class="podium-name">${e.person}</div>
         <div class="podium-pts">${e.total}<span> pts</span></div>
       </div>`;
@@ -1442,28 +2081,35 @@ function buildLeaderboardSection() {
   }
 
   html += `<div class="lb-list">`;
-  board.forEach((e, rank) => {
+  board.forEach((e, i) => {
     const ac = avatarPalette[e.idx];
-    const topClass = rank < 3 ? ` top-${rank + 1}` : '';
+    const topClass = e.rank <= 3 ? ` top-${e.rank}` : '';
     const teamStr = e.teams.map(n => getTeam(n).f).join(' ');
+    const rankLabel = e.tiedWith ? `=${e.rank}` : `${e.rank}`;
+    const stats = hasResults
+      ? `${e.wins}W ${e.draws}D · ${e.group} grp · ${e.knockout} ko${e.picks ? ` · ${e.picks} pick pts` : ''}`
+      : '';
     html += `<div class="lb-row${topClass}" style="cursor:pointer" onclick="activePlayer='${e.person}'; showSection('fixtures', document.querySelector('[data-tab=fixtures]'))" title="View ${e.person}'s fixtures">
-      <div class="lb-rank">${rank + 1}</div>
+      <div class="lb-rank">${rankLabel}</div>
       <div class="avatar" style="background:${ac.bg};color:${ac.c};width:36px;height:36px;font-size:11px;border-radius:10px">${initials(e.person)}</div>
       <div class="lb-info">
         <div class="lb-name">${e.person}</div>
-        <div class="lb-teams">${teamStr} ${hasResults ? `· ${e.wins}W ${e.draws}D` : ''}</div>
+        <div class="lb-teams">${teamStr}${stats ? ` · ${stats}` : ''}</div>
       </div>
       <div class="lb-score-col">
         <div class="lb-total">${e.total}</div>
-        <div class="lb-breakdown">${e.group} grp · ${e.knockout} ko</div>
+        <div class="lb-breakdown">${e.sweep} sweep · ${e.picks} picks</div>
       </div>
     </div>`;
   });
   html += `</div>`;
 
-  if (hasResults && leader) {
+  if (hasResults && leaders.length) {
+    const pts = leaders[0].total;
+    const names = formatLeaderNames(leaders);
+    const tieText = leaders.length > 1 ? ' are tied for the lead with' : ' leads with';
     html += `<div class="share-bar" style="margin-top:1.25rem">
-      <span class="share-bar-text"><strong>${leader.person}</strong> leads with ${leader.total} pts</span>
+      <span class="share-bar-text"><strong>${names}</strong>${tieText} ${pts} pts</span>
     </div>`;
   }
 
@@ -1573,6 +2219,130 @@ function showPersonFixtures(person) {
   updateUrl('fixtures', person);
 }
 
+/* BUILD MY PICKS */
+function buildPicksSection() {
+  const sec = document.getElementById('sec-picks');
+  const player = picksPlayer();
+  const rows = fixtures.map((f, i) => ({ ...f, idx: i }));
+  const upcoming = rows.filter(f => !isMatchPlayed(f.idx));
+  const played = rows.filter(f => isMatchPlayed(f.idx));
+  const myPicked = player ? rows.filter(f => getSavedPick(player, f.idx)) : [];
+
+  let list = rows;
+  if (picksFilter === 'upcoming') list = upcoming;
+  if (picksFilter === 'played') list = played;
+  if (picksFilter === 'mine') list = myPicked;
+
+  const myPts = player ? calcPickPoints(player).total : 0;
+
+  let html = `<div class="section-title">My picks</div>
+    <p class="pick-intro">Predict the winner <em>and</em> score for each match before kickoff. Picks lock <strong>1 hour before</strong> the match. One entry per match per person — bonus points stack on top of your sweepstake score.</p>
+    <div class="person-tabs-wrap" style="margin-bottom:1rem">
+      <div class="person-tabs-label">Who are you?</div>
+      <div class="person-tabs">` +
+    people.map(p =>
+      `<button class="ptab${player === p ? ' active' : ''}" onclick="setPicksPlayer('${p}')">${p}</button>`
+    ).join('') +
+    `</div></div>`;
+
+  if (!player) {
+    html += `<div class="pick-status warn">Select your name above to start predicting.</div>`;
+  } else {
+    html += `<div class="pick-status">Playing as <strong>${player}</strong> · ${myPts} prediction pts</div>`;
+    if (picksMeta.loading) {
+      html += `<div class="pick-status">Loading saved picks…</div>`;
+    } else if (picksMeta.error) {
+      html += `<div class="pick-status warn"><strong>Predictions unavailable</strong><br>${picksMeta.error}</div>`;
+    }
+  }
+
+  const openCount = upcoming.filter(f => !isPickLocked(f.idx, f)).length;
+  html += `<div class="pick-view-tabs" role="tablist" aria-label="Match filters">
+      <button class="pick-view-tab${picksFilter === 'upcoming' ? ' active' : ''}" role="tab" aria-selected="${picksFilter === 'upcoming' ? 'true' : 'false'}" onclick="picksFilter='upcoming'; buildPicksSection()">
+        Upcoming<span class="count">${upcoming.length} matches · ${openCount} open</span>
+      </button>
+      <button class="pick-view-tab${picksFilter === 'played' ? ' active' : ''}" role="tab" aria-selected="${picksFilter === 'played' ? 'true' : 'false'}" onclick="picksFilter='played'; buildPicksSection()">
+        Played<span class="count">${played.length} finished</span>
+      </button>
+      <button class="pick-view-tab${picksFilter === 'mine' ? ' active' : ''}" role="tab" aria-selected="${picksFilter === 'mine' ? 'true' : 'false'}" onclick="picksFilter='mine'; buildPicksSection()">
+        My picks<span class="count">${myPicked.length} saved</span>
+      </button>
+    </div>
+    <div class="pick-list">`;
+
+  if (!list.length) {
+    const emptyMsg = picksFilter === 'upcoming'
+      ? 'No upcoming matches — group stage is complete.'
+      : picksFilter === 'played'
+        ? 'No matches played yet. Check back after kickoff!'
+        : player
+          ? "You haven't saved any picks yet. Go to Upcoming and make your first pick."
+          : 'Select your name above, then save picks from the Upcoming tab.';
+    html += `<div class="pick-status">${emptyMsg}</div>`;
+  }
+
+  let lastDate = '';
+  list.forEach(f => {
+    const saved = player ? getSavedPick(player, f.idx) : null;
+    const draft = picksDraft[f.idx] || saved || {};
+    const lockedMatch = isPickLocked(f.idx, f);
+    const result = matchResults[f.idx];
+    const done = result?.h != null;
+    const pts = saved && done ? scoreMemberPick(saved, result) : null;
+
+    if (f.d !== lastDate) {
+      html += `<div class="date-head" style="padding:12px 0 6px">${f.d}</div>`;
+      lastDate = f.d;
+    }
+
+    const status = done
+      ? `FT ${result.h}–${result.a}${pts != null ? ` · <span class="pick-result-pts">+${pts} pts</span>` : ''}`
+      : lockedMatch ? 'Locked' : pickLockLabel(f);
+
+    html += `<div class="pick-card${lockedMatch ? ' locked' : ''}${saved ? ' saved' : ''}" data-pick-card="${f.idx}">
+      <div class="pick-meta"><span>Group ${f.g} · ${f.t} GST</span><span>${status}</span></div>
+      <div class="pick-match">
+        <span>${getTeam(f.h).f} ${f.h}</span>
+        <span style="color:var(--text-faint)">vs</span>
+        <span>${getTeam(f.a).f} ${f.a}</span>
+      </div>`;
+
+    if (done) {
+      if (saved) {
+        const ptsDetail = pts > 0 ? ` · <span class="pick-result-pts">+${pts} pts</span>` : ' · 0 pts';
+        html += `<div class="pick-saved-label">Your pick: ${pickOutcomeLabel(f, saved.pick)} · ${saved.scoreH}–${saved.scoreA}${ptsDetail}</div>`;
+      } else {
+        html += `<div class="pick-no-pick">No pick submitted for this match</div>`;
+      }
+    } else if (saved && lockedMatch) {
+      html += `<div class="pick-saved-label">Your pick: ${pickOutcomeLabel(f, saved.pick)} · ${saved.scoreH}–${saved.scoreA} · Locked in</div>`;
+    } else if (player && !lockedMatch) {
+      const pick = draft.pick || '';
+      const scoreH = draft.scoreH ?? '';
+      const scoreA = draft.scoreA ?? '';
+      html += `<div class="pick-choices">
+        <button class="pick-choice${pick === 'home' ? ' active' : ''}" onclick="setPickDraft(${f.idx},'pick','home')">${getTeam(f.h).f} ${f.h}</button>
+        <button class="pick-choice${pick === 'draw' ? ' active' : ''}" onclick="setPickDraft(${f.idx},'pick','draw')">Draw</button>
+        <button class="pick-choice${pick === 'away' ? ' active' : ''}" onclick="setPickDraft(${f.idx},'pick','away')">${getTeam(f.a).f} ${f.a}</button>
+      </div>
+      <div class="pick-score-row">
+        <span>Score</span>
+        <input type="number" min="0" max="9" value="${scoreH}" oninput="setPickDraft(${f.idx},'scoreH',Number(this.value))" />
+        <span>–</span>
+        <input type="number" min="0" max="9" value="${scoreA}" oninput="setPickDraft(${f.idx},'scoreA',Number(this.value))" />
+      </div>
+      <button class="pick-save" data-save-pick="${f.idx}" onclick="saveMemberPick(${f.idx})">${saved ? 'Update pick' : 'Save pick'}</button>`;
+    } else if (!player) {
+      html += `<div class="pick-status" style="margin:0;padding:8px 0;background:none;border:none">Select your name to predict this match.</div>`;
+    }
+
+    html += `</div>`;
+  });
+
+  html += '</div>';
+  sec.innerHTML = html;
+}
+
 /* BUILD GROUPS */
 function buildGroupsSection() {
   const sec = document.getElementById('sec-groups');
@@ -1628,7 +2398,7 @@ function buildGroupsSection() {
     banner.innerHTML = `Welcome <strong>${urlPlayer}</strong> — here are your teams & fixtures`;
   }
 
-  const tabMap = { draw: 'draw', leaderboard: 'leaderboard', fixtures: 'fixtures', groups: 'groups' };
+  const tabMap = { draw: 'draw', leaderboard: 'leaderboard', fixtures: 'fixtures', groups: 'groups', picks: 'picks' };
   let startTab = 'draw';
   if (urlTab && tabMap[urlTab]) startTab = urlTab;
   else if (urlPlayer) startTab = 'fixtures';
@@ -1636,7 +2406,9 @@ function buildGroupsSection() {
   if (startTab === 'leaderboard') document.title = 'Leaderboard · World Cup 2026 Sweepstake';
   if (startTab !== 'draw') showSection(startTab);
   loadScores();
+  loadPredictions();
   setInterval(loadScores, 3 * 60 * 1000);
+  setInterval(loadPredictions, 3 * 60 * 1000);
 })();
 </script>
 </body>

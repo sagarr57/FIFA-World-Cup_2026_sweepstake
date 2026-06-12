@@ -1,0 +1,12 @@
+{
+  "name": "fifa-world-cup-2026-sweepstake",
+  "private": true,
+  "scripts": {
+    "dev": "npx --yes netlify-cli dev",
+    "start": "npx --yes netlify-cli dev",
+    "verify": "bash scripts/verify-predictions.sh"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^10.7.9"
+  }
+}
