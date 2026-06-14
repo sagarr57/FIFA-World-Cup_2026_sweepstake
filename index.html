@@ -1856,7 +1856,7 @@ function scoreMemberPick(pick, result) {
   if (pick.pick === actual) pts += PICK_SCORING.winner;
   const predDiff = pick.scoreH - pick.scoreA;
   const actualDiff = result.h - result.a;
-  if (pick.pick === actual && predDiff === actualDiff) pts += PICK_SCORING.goalDiff;
+  if (actual !== 'draw' && pick.pick === actual && predDiff === actualDiff) pts += PICK_SCORING.goalDiff;
   if (pick.scoreH === result.h && pick.scoreA === result.a) pts += PICK_SCORING.exactScore;
   return pts;
 }
@@ -2420,7 +2420,7 @@ function buildLeaderboardSection() {
         <div class="lb-rule"><strong>+${SCORING.knockout.r32}</strong>per KO round</div>
         <div class="lb-rule"><strong>+${SCORING.worldCupWinner}</strong>WC winner</div>
         <div class="lb-rule"><strong>+${PICK_SCORING.winner}</strong>pick winner</div>
-        <div class="lb-rule"><strong>+${PICK_SCORING.goalDiff}</strong>goal diff</div>
+        <div class="lb-rule"><strong>+${PICK_SCORING.goalDiff}</strong>goal diff (wins only)</div>
         <div class="lb-rule"><strong>+${PICK_SCORING.exactScore}</strong>exact score</div>
         <div class="lb-rule"><strong>1h</strong>lock before kickoff</div>
       </div>
