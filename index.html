@@ -754,7 +754,11 @@
       background: linear-gradient(180deg, var(--gold-light) 0%, var(--bg-elevated) 100%);
     }
     .podium-slot.second { margin-bottom: 12px; }
-    .podium-slot.third { margin-bottom: 24px; }
+    .podium-slot.third {
+      border-color: color-mix(in srgb, #b45309 45%, transparent);
+      background: linear-gradient(180deg, rgba(180, 83, 9, 0.1) 0%, var(--bg-elevated) 100%);
+    }
+    .lb-podium .podium-slot.third { margin-bottom: 24px; }
     .podium-medal { font-size: 28px; line-height: 1; margin-bottom: 6px; }
     .podium-name {
       font-family: var(--font-display);
@@ -789,11 +793,31 @@
       gap: 10px;
       justify-content: center;
       flex-wrap: wrap;
-      margin-bottom: 1.25rem;
     }
     .lb-tie-podium .podium-slot {
       flex: 1 1 140px;
       max-width: 180px;
+    }
+    .lb-podium-tie {
+      max-width: 400px;
+      margin: 0 auto 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .lb-podium-tie .lb-tie-podium {
+      margin-bottom: 0;
+    }
+    .lb-tie-third {
+      display: flex;
+      justify-content: center;
+    }
+    .lb-tie-third .podium-slot {
+      flex: 1 1 140px;
+      max-width: 180px;
+      width: 100%;
+      margin: 0;
+      padding: 16px 14px 14px;
     }
 
     .lb-list { display: flex; flex-direction: column; gap: 8px; }
@@ -1257,6 +1281,11 @@
         flex: 1 1 100%;
         max-width: none;
       }
+      .lb-tie-third .podium-slot {
+        flex: 1 1 100%;
+        max-width: none;
+      }
+      .lb-podium-tie { max-width: 100%; }
     }
 
     @media (max-width: 600px) {
@@ -2431,7 +2460,8 @@ function buildLeaderboardSection() {
   const soloThird = thirds.length === 1 ? thirds[0] : null;
 
   if (hasResults && tiedLeaders.length > 1) {
-    html += `<div class="lb-tie-podium">`;
+    html += `<div class="lb-podium-tie">
+      <div class="lb-tie-podium">`;
     tiedLeaders.forEach(e => {
       html += `<div class="podium-slot first">
         <div class="podium-place">1st · tied</div>
@@ -2442,8 +2472,8 @@ function buildLeaderboardSection() {
     });
     html += `</div>`;
     if (soloThird) {
-      html += `<div class="lb-podium" style="max-width:200px;margin:0 auto 1.25rem">
-        <div class="podium-slot third" style="margin:0">
+      html += `<div class="lb-tie-third">
+        <div class="podium-slot third">
           <div class="podium-place">3rd</div>
           <div class="podium-medal">🥉</div>
           <div class="podium-name">${soloThird.person}</div>
@@ -2451,6 +2481,7 @@ function buildLeaderboardSection() {
         </div>
       </div>`;
     }
+    html += `</div>`;
   } else if (hasResults && board.length >= 3 && board[0].total > 0) {
     const podiumLayout = [
       { idx: 1, slot: 'second', medal: '🥈', label: '2nd' },
