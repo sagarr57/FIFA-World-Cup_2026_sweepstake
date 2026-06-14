@@ -2427,8 +2427,8 @@ function buildLeaderboardSection() {
     </div>`;
 
   const tiedLeaders = board.filter(e => e.rank === 1 && e.total > 0);
-  const soloThird = board[2] && board[2].rank === 3 &&
-    board.filter(e => e.rank === 3).length === 1;
+  const thirds = board.filter(e => e.rank === 3);
+  const soloThird = thirds.length === 1 ? thirds[0] : null;
 
   if (hasResults && tiedLeaders.length > 1) {
     html += `<div class="lb-tie-podium">`;
