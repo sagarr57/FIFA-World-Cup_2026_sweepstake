@@ -1,4 +1,8 @@
 const CACHE_MS = 2 * 60 * 1000; // refresh every 2 min
+const FETCH_TIMEOUT_MS = 25000;
+const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
+const TOURNAMENT_START = '2026-06-11';
+const TOURNAMENT_END = '2026-07-19';
 
 let cache = { data: null, ts: 0 };
 
@@ -6,6 +10,11 @@ const headers = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
   'Cache-Control': 'public, max-age=120',
+};
+
+const FETCH_OPTS = {
+  headers: { Accept: 'application/json', 'User-Agent': 'FIFA-Sweepstake/1.0' },
+  signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 };
 
 const TEAM_MAP = {
@@ -38,14 +47,8 @@ function parseEspnStatus(name) {
   return 'NS';
 }
 
-async function fetchEspn() {
-  const res = await fetch(
-    'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard'
-  );
-  if (!res.ok) throw new Error(`ESPN ${res.status}`);
-  const data = await res.json();
+function parseEspnEvents(data, sourceLabel) {
   const fixtures = [];
-
   for (const event of data.events || []) {
     const comp = event.competitions?.[0];
     if (!comp) continue;
@@ -54,6 +57,7 @@ async function fetchEspn() {
     if (!homeC || !awayC) continue;
 
     const status = parseEspnStatus(event.status?.type?.name);
+    if (status === 'NS') continue;
     const h = parseInt(homeC.score, 10);
     const a = parseInt(awayC.score, 10);
 
@@ -63,8 +67,8 @@ async function fetchEspn() {
       h: Number.isNaN(h) ? null : h,
       a: Number.isNaN(a) ? null : a,
       status,
-      round: event.name || 'Group Stage',
-      source: 'espn',
+      round: event.name || comp.notes?.[0]?.headline || 'Group Stage',
+      source: sourceLabel,
       homeWinner: homeC.winner === true,
       awayWinner: awayC.winner === true,
     });
@@ -72,10 +76,57 @@ async function fetchEspn() {
   return fixtures;
 }
 
+async function fetchEspnScoreboard(dateYmd) {
+  const url = dateYmd ? `${ESPN_BASE}?dates=${dateYmd}` : ESPN_BASE;
+  const res = await fetch(url, FETCH_OPTS);
+  if (!res.ok) throw new Error(`ESPN ${res.status}`);
+  const data = await res.json();
+  return parseEspnEvents(data, dateYmd ? `espn:${dateYmd}` : 'espn');
+}
+
+function tournamentDatesYmd() {
+  const start = new Date(`${TOURNAMENT_START}T12:00:00Z`);
+  const end = new Date(`${TOURNAMENT_END}T12:00:00Z`);
+  const today = new Date();
+  const cap = today < end ? today : end;
+  const dates = [];
+  for (let d = new Date(start); d <= cap; d.setUTCDate(d.getUTCDate() + 1)) {
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    dates.push(`${y}${m}${day}`);
+  }
+  return dates;
+}
+
+async function mapPool(items, limit, fn) {
+  const results = [];
+  let i = 0;
+  async function worker() {
+    while (i < items.length) {
+      const idx = i++;
+      try {
+        results[idx] = await fn(items[idx]);
+      } catch (e) {
+        console.error('pool:', e.message);
+        results[idx] = [];
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results.flat();
+}
+
+async function fetchEspnHistory() {
+  const dates = tournamentDatesYmd();
+  const batches = await mapPool(dates, 6, (d) => fetchEspnScoreboard(d));
+  return batches;
+}
+
 async function fetchWorldCup26() {
   const [gamesRes, teamsRes] = await Promise.all([
-    fetch('https://worldcup26.ir/get/games'),
-    fetch('https://worldcup26.ir/get/teams'),
+    fetch('https://worldcup26.ir/get/games', FETCH_OPTS),
+    fetch('https://worldcup26.ir/get/teams', FETCH_OPTS),
   ]);
   if (!gamesRes.ok) throw new Error(`worldcup26 games ${gamesRes.status}`);
 
@@ -91,14 +142,16 @@ async function fetchWorldCup26() {
   const fixtures = [];
   for (const g of games) {
     const finished = String(g.finished || '').toUpperCase() === 'TRUE';
-    const live = String(g.finished || '').toUpperCase() === 'FALSE' &&
-      g.home_score != null && g.away_score != null &&
-      (parseInt(g.home_score, 10) > 0 || parseInt(g.away_score, 10) > 0);
-    const status = finished ? 'FT' : live ? 'LIVE' : 'NS';
+    const hRaw = g.home_score;
+    const aRaw = g.away_score;
+    const h = parseInt(hRaw, 10);
+    const a = parseInt(aRaw, 10);
+    const hasNumericScore = !Number.isNaN(h) && !Number.isNaN(a);
+    const elapsed = parseInt(g.time_elapsed, 10);
+    const inProgress = !finished && hasNumericScore && elapsed > 0 && elapsed < 120;
+    const status = finished ? 'FT' : inProgress ? 'LIVE' : 'NS';
     if (status === 'NS') continue;
 
-    const h = parseInt(g.home_score, 10);
-    const a = parseInt(g.away_score, 10);
     const home = idToName[g.home_team_id];
     const away = idToName[g.away_team_id];
 
@@ -117,31 +170,31 @@ async function fetchWorldCup26() {
   return fixtures;
 }
 
-// Kept when live APIs drop past results from the scoreboard window
-const KNOWN_FT = [
-  { home: 'Mexico', away: 'South Africa', h: 2, a: 0, status: 'FT', source: 'known' },
-  { home: 'South Korea', away: 'Czechia', h: 2, a: 1, status: 'FT', source: 'known' },
-  { home: 'Korea Republic', away: 'Czech Republic', h: 2, a: 1, status: 'FT', source: 'known' },
-];
+const STATUS_RANK = { FT: 3, LIVE: 2, NS: 1 };
 
-function mergeFixtures(espn, wc26) {
+function pickBetterFixture(prev, next) {
+  if (!prev) return next;
+  const prevRank = STATUS_RANK[prev.status] || 0;
+  const nextRank = STATUS_RANK[next.status] || 0;
+  if (nextRank > prevRank) return next;
+  if (nextRank < prevRank) return prev;
+  // Prefer live ESPN over static wc26 when both LIVE
+  if (next.status === 'LIVE' && String(next.source).startsWith('espn')) return next;
+  if (prev.status === 'LIVE' && String(prev.source).startsWith('espn')) return prev;
+  // Prefer worldcup26 for finished historical completeness
+  if (next.status === 'FT' && next.source === 'worldcup26') return next;
+  if (prev.status === 'FT' && prev.source === 'worldcup26') return prev;
+  return next;
+}
+
+function mergeFixtures(...lists) {
   const map = new Map();
-  // worldcup26 first, ESPN overrides (better live state)
-  for (const f of wc26) {
-    const key = fixtureKey(f.home, f.away);
-    if (key !== 'null|null') map.set(key, f);
-  }
-  for (const f of espn) {
-    const key = fixtureKey(f.home, f.away);
-    if (key === 'null|null') continue;
-    const prev = map.get(key);
-    if (!prev || f.status === 'FT' || f.status === 'LIVE') map.set(key, f);
-  }
-  for (const f of KNOWN_FT) {
-    const key = fixtureKey(f.home, f.away);
-    if (key === 'null|null') continue;
-    const prev = map.get(key);
-    if (!prev || prev.status !== 'FT') map.set(key, f);
+  for (const list of lists) {
+    for (const f of list) {
+      const key = fixtureKey(f.home, f.away);
+      if (key === 'null|null') continue;
+      map.set(key, pickBetterFixture(map.get(key), f));
+    }
   }
   return [...map.values()];
 }
@@ -152,25 +205,32 @@ exports.handler = async function () {
   }
 
   try {
-    const [espn, wc26] = await Promise.all([
-      fetchEspn().catch((e) => { console.error('ESPN:', e.message); return []; }),
+    const [wc26, espnLive, espnHistory] = await Promise.all([
       fetchWorldCup26().catch((e) => { console.error('WC26:', e.message); return []; }),
+      fetchEspnScoreboard().catch((e) => { console.error('ESPN live:', e.message); return []; }),
+      fetchEspnHistory().catch((e) => { console.error('ESPN history:', e.message); return []; }),
     ]);
 
-    const fixtures = mergeFixtures(espn, wc26);
+    const fixtures = mergeFixtures(wc26, espnHistory, espnLive);
     const finished = fixtures.filter((f) => f.status === 'FT').length;
     const live = fixtures.filter((f) => f.status === 'LIVE').length;
+    const sourceSet = new Set(fixtures.map((f) => f.source?.split(':')[0] || f.source));
 
     const payload = {
       fixtures,
       updatedAt: new Date().toISOString(),
       error: fixtures.length ? null : 'No match data available right now',
       season: 2026,
-      sources: ['espn', 'worldcup26'],
+      sources: [...sourceSet],
       stats: { total: fixtures.length, finished, live },
     };
 
-    cache = { data: payload, ts: Date.now() };
+    // Never cache empty responses — avoids blanking pick/sweep boards for 2 min after a blip
+    if (fixtures.length > 0) cache = { data: payload, ts: Date.now() };
+    else if (cache.data?.fixtures?.length) {
+      return { statusCode: 200, headers, body: JSON.stringify(cache.data) };
+    }
+
     return { statusCode: 200, headers, body: JSON.stringify(payload) };
   } catch (err) {
     return {

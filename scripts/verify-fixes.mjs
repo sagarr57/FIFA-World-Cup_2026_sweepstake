@@ -60,6 +60,10 @@ async function main() {
   if (html.includes('!r.live')) pass('Points/badges skip in-progress matches');
   else fail('Live match scoring guard missing');
 
+  if (html.includes('wcMemberPicks') && html.includes('function applyApiPicks')) {
+    pass('Saved picks persist in localStorage and merge with API');
+  } else fail('Pick localStorage persistence missing');
+
   if (html.includes('wcPicksPlayer') && html.includes('remembered')) pass('localStorage player restored on load');
   else fail('localStorage restore missing');
 

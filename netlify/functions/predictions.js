@@ -93,11 +93,12 @@ exports.handler = async function (event) {
 
   if (event.httpMethod === 'GET') {
     try {
-      const { blobs } = await store.list({ prefix: 'pick/' });
       const picks = [];
-      for (const blob of blobs) {
-        const data = await store.get(blob.key, { type: 'json' });
-        if (data) picks.push(data);
+      for await (const page of store.list({ prefix: 'pick/', paginate: true })) {
+        const batch = await Promise.all(
+          page.blobs.map((blob) => store.get(blob.key, { type: 'json' }))
+        );
+        batch.filter(Boolean).forEach((data) => picks.push(data));
       }
       return { statusCode: 200, headers, body: JSON.stringify({ picks, updatedAt: new Date().toISOString() }) };
     } catch (err) {

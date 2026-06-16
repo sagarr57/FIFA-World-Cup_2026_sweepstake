@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "npx --yes netlify-cli dev",
     "start": "npx --yes netlify-cli dev",
-    "verify": "bash scripts/verify-predictions.sh"
+    "verify": "node scripts/verify-scores-and-boards.mjs",
+    "verify:fixes": "node scripts/verify-fixes.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^10.7.9"

@@ -695,6 +695,12 @@
     .personal-banner strong { color: var(--accent); font-weight: 700; }
 
     /* LEADERBOARD */
+    .lb-board-intro {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: -0.5rem 0 1.25rem;
+      line-height: 1.5;
+    }
     .lb-rules {
       background: var(--bg-elevated);
       border: 1px solid var(--border);
@@ -1578,10 +1584,11 @@
   <nav class="nav-wrap" aria-label="Main navigation">
     <div class="tabs" role="tablist">
       <button class="tab active" data-tab="draw" role="tab" aria-selected="true"><span class="tab-long">Draw</span><span class="tab-short">Draw</span></button>
-      <button class="tab" data-tab="leaderboard" role="tab" aria-selected="false"><span class="tab-long">Leaderboard</span><span class="tab-short">Board</span></button>
+      <button class="tab" data-tab="sweep" role="tab" aria-selected="false"><span class="tab-long">Sweepstake</span><span class="tab-short">Sweep</span></button>
       <button class="tab" data-tab="fixtures" role="tab" aria-selected="false"><span class="tab-long">My Fixtures</span><span class="tab-short">Fixtures</span></button>
       <button class="tab" data-tab="groups" role="tab" aria-selected="false"><span class="tab-long">Groups</span><span class="tab-short">Groups</span></button>
       <button class="tab" data-tab="picks" role="tab" aria-selected="false"><span class="tab-long">My Picks</span><span class="tab-short">Picks</span></button>
+      <button class="tab" data-tab="pickboard" role="tab" aria-selected="false"><span class="tab-long">Pick Board</span><span class="tab-short">Predict</span></button>
     </div>
   </nav>
 
@@ -1589,10 +1596,11 @@
     <div id="sec-draw" class="section active" role="tabpanel">
       <div class="section-title">Team assignments</div>
     </div>
-    <div id="sec-leaderboard" class="section" role="tabpanel"></div>
+    <div id="sec-sweep" class="section" role="tabpanel"></div>
     <div id="sec-fixtures" class="section" role="tabpanel"></div>
     <div id="sec-groups" class="section" role="tabpanel"></div>
     <div id="sec-picks" class="section" role="tabpanel"></div>
+    <div id="sec-pickboard" class="section" role="tabpanel"></div>
   </main>
 </div>
 
@@ -1868,8 +1876,81 @@ function pickStorageKey(player, idx) {
   return `${player}|${idx}`;
 }
 
+function loadPersistedPicks() {
+  try {
+    const raw = localStorage.getItem('wcMemberPicks');
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    Object.entries(saved.picks || {}).forEach(([k, v]) => {
+      if (v?.player && v.matchIdx != null && !memberPicks[k]) memberPicks[k] = v;
+    });
+  } catch { /* ignore */ }
+}
+
+function persistMemberPicks() {
+  try {
+    localStorage.setItem('wcMemberPicks', JSON.stringify({
+      picks: { ...memberPicks },
+      savedAt: new Date().toISOString(),
+    }));
+  } catch { /* ignore */ }
+}
+
+function applyApiPicks(picksArray) {
+  const incoming = {};
+  (picksArray || []).forEach(p => {
+    if (p?.player && p.matchIdx != null) incoming[pickStorageKey(p.player, p.matchIdx)] = p;
+  });
+  const incomingKeys = Object.keys(incoming);
+
+  if (incomingKeys.length === 0) {
+    if (Object.keys(memberPicks).length) return;
+    memberPicks = {};
+    persistMemberPicks();
+    return;
+  }
+
+  const merged = { ...incoming };
+  const pending = [];
+  Object.entries(memberPicks).forEach(([k, local]) => {
+    if (!local?.pending || merged[k]) return;
+    merged[k] = local;
+    pending.push(local);
+  });
+  memberPicks = merged;
+  persistMemberPicks();
+  if (pending.length) syncPendingPicks(pending);
+}
+
+async function syncPendingPicks(picks) {
+  for (const p of picks) {
+    const f = fixtures[p.matchIdx];
+    if (!f || isPickLocked(p.matchIdx, f)) continue;
+    try {
+      const res = await fetch('/api/predictions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          player: p.player, matchIdx: p.matchIdx, pick: p.pick, scoreH: p.scoreH, scoreA: p.scoreA,
+        }),
+        signal: AbortSignal.timeout(12000),
+      });
+      const data = await readPredictionsResponse(res);
+      if (!res.ok) continue;
+      const record = data.pick || { ...p, pending: undefined, savedAt: new Date().toISOString() };
+      delete record.pending;
+      memberPicks[pickStorageKey(p.player, p.matchIdx)] = record;
+    } catch { /* retry on next refresh */ }
+  }
+  persistMemberPicks();
+}
+
 function getSavedPick(player, idx) {
   return memberPicks[pickStorageKey(player, idx)] || null;
+}
+
+function pickPendingNote(saved) {
+  return saved?.pending ? ' · <em>Saved on this device — will sync when online</em>' : '';
 }
 
 function pickOutcomeLabel(f, pick) {
@@ -1893,15 +1974,27 @@ function scoreMemberPick(pick, result) {
 function calcPickPoints(person) {
   let total = 0;
   let correct = 0;
+  let saved = 0;
   fixtures.forEach((f, i) => {
-    const saved = getSavedPick(person, i);
-    if (!saved || !isMatchPlayed(i)) return;
+    const pick = getSavedPick(person, i);
+    if (!pick) return;
+    saved++;
+    if (!isMatchPlayed(i)) return;
     const result = matchResults[i];
-    const pts = scoreMemberPick(saved, result);
+    const pts = scoreMemberPick(pick, result);
     total += pts;
     if (pts > 0) correct++;
   });
-  return { total, correct };
+  return { total, correct, saved };
+}
+
+function countAllSavedPicks() {
+  return Object.keys(memberPicks).length;
+}
+
+function refreshLeaderboards() {
+  if (document.getElementById('sec-sweep')?.classList.contains('active')) buildSweepboardSection();
+  if (document.getElementById('sec-pickboard')?.classList.contains('active')) buildPickboardSection();
 }
 
 function friendlyPredictionsError(raw, status) {
@@ -1937,20 +2030,18 @@ async function loadPredictions() {
     const res = await fetch('/api/predictions', { signal: AbortSignal.timeout(12000) });
     const data = await readPredictionsResponse(res);
     if (!res.ok) throw new Error(data.error || friendlyPredictionsError('', res.status));
-    memberPicks = {};
-    (data.picks || []).forEach(p => {
-      memberPicks[pickStorageKey(p.player, p.matchIdx)] = p;
-    });
+    applyApiPicks(data.picks);
     picksMeta.error = null;
     picksMeta.updatedAt = data.updatedAt;
   } catch (e) {
+    if (!Object.keys(memberPicks).length) loadPersistedPicks();
     picksMeta.error = e.message.includes('valid JSON')
       ? friendlyPredictionsError(e.message, 0)
       : e.message;
   }
   picksMeta.loading = false;
-  if (document.getElementById('sec-picks').classList.contains('active')) buildPicksSection();
-  if (document.getElementById('sec-leaderboard').classList.contains('active')) buildLeaderboardSection();
+  if (document.getElementById('sec-picks')?.classList.contains('active')) buildPicksSection();
+  refreshLeaderboards();
 }
 
 async function saveMemberPick(matchIdx) {
@@ -1980,8 +2071,11 @@ async function saveMemberPick(matchIdx) {
     });
     const data = await readPredictionsResponse(res);
     if (!res.ok) throw new Error(data.error || 'Could not save your pick. Try again.');
+    const record = data.pick || { player, matchIdx, pick, scoreH, scoreA, savedAt: new Date().toISOString() };
+    memberPicks[pickStorageKey(player, matchIdx)] = record;
+    persistMemberPicks();
     delete picksDraft[matchIdx];
-    await loadPredictions();
+    loadPredictions();
     if (btn) {
       btn.textContent = '✓ Saved!';
       btn.classList.add('saved-flash');
@@ -2001,7 +2095,17 @@ async function saveMemberPick(matchIdx) {
       return;
     }
   } catch (e) {
-    alert(e.message.includes('valid JSON') ? friendlyPredictionsError(e.message, 0) : e.message);
+    const msg = e.message.includes('valid JSON') ? friendlyPredictionsError(e.message, 0) : e.message;
+    const record = {
+      player, matchIdx, pick, scoreH, scoreA,
+      savedAt: new Date().toISOString(),
+      pending: true,
+    };
+    memberPicks[pickStorageKey(player, matchIdx)] = record;
+    persistMemberPicks();
+    delete picksDraft[matchIdx];
+    if (document.getElementById('sec-picks')?.classList.contains('active')) buildPicksSection();
+    alert(`${msg}\n\nYour pick is saved on this device and will sync when the server is back.`);
   } finally {
     if (btn && !btn.classList.contains('saved-flash')) {
       btn.disabled = false;
@@ -2073,7 +2177,7 @@ const SCORING = {
 // Populated via /api/scores — merged with localStorage so finished results never vanish
 const matchResults = {};
 const teamKnockout = {};
-let scoresMeta = { updatedAt: null, error: null, loading: true, count: 0 };
+let scoresMeta = { updatedAt: null, error: null, loading: true, count: 0, lastApiFt: 0 };
 
 function loadPersistedResults() {
   try {
@@ -2224,6 +2328,7 @@ async function loadScores() {
     scoresMeta.updatedAt = data.updatedAt;
     scoresMeta.error = data.error;
     scoresMeta.live = (data.fixtures || []).filter(f => f.status === 'LIVE').length;
+    scoresMeta.lastApiFt = (data.fixtures || []).filter(f => f.status === 'FT').length;
     scoresMeta.count = applyApiScores(data);
   } catch (e) {
     scoresMeta.error = e.message;
@@ -2231,9 +2336,9 @@ async function loadScores() {
   }
   scoresMeta.loading = false;
   updateScoresStatus();
-  if (document.getElementById('sec-leaderboard').classList.contains('active')) buildLeaderboardSection();
   if (document.querySelector('#fixture-view')) showPersonFixtures(defaultPlayer());
-  if (document.getElementById('sec-picks').classList.contains('active')) buildPicksSection();
+  if (document.getElementById('sec-picks')?.classList.contains('active')) buildPicksSection();
+  refreshLeaderboards();
 }
 
 function getMatchPoints(team, f, result) {
@@ -2267,7 +2372,7 @@ function getTeamMatchResult(team, f, result) {
   return 'loss';
 }
 
-function calcPlayerScore(person) {
+function calcSweepScore(person) {
   const teams = draw[person];
   let group = 0, knockout = 0, wins = 0, draws = 0, losses = 0;
   fixtures.forEach((f, i) => {
@@ -2283,18 +2388,34 @@ function calcPlayerScore(person) {
     });
   });
   teams.forEach(t => { knockout += getKnockoutPoints(t); });
-  const picks = calcPickPoints(person);
   const sweep = group + knockout;
-  return {
-    group, knockout, sweep, picks: picks.total, pickWins: picks.correct,
-    total: sweep + picks.total, wins, draws, losses, teams,
-  };
+  return { group, knockout, sweep, wins, draws, losses, teams };
 }
 
-function getLeaderboard() {
+function getSweepboard() {
   return people
-    .map(p => ({ person: p, ...calcPlayerScore(p), idx: people.indexOf(p) }))
-    .sort((a, b) => b.total - a.total || b.sweep - a.sweep || b.picks - a.picks || a.person.localeCompare(b.person));
+    .map(p => {
+      const s = calcSweepScore(p);
+      return { person: p, ...s, idx: people.indexOf(p), total: s.sweep };
+    })
+    .sort((a, b) => b.total - a.total || b.group - a.group || a.person.localeCompare(b.person));
+}
+
+function getPickboard() {
+  return people
+    .map(p => {
+      const picks = calcPickPoints(p);
+      return {
+        person: p,
+        picks: picks.total,
+        pickWins: picks.correct,
+        pickSaved: picks.saved,
+        teams: [],
+        idx: people.indexOf(p),
+        total: picks.total,
+      };
+    })
+    .sort((a, b) => b.total - a.total || b.pickWins - a.pickWins || b.pickSaved - a.pickSaved || a.person.localeCompare(b.person));
 }
 
 function withDisplayRanks(board) {
@@ -2362,6 +2483,7 @@ function updateUrl(tab, player) {
 }
 
 function showSection(id, btn) {
+  if (id === 'leaderboard') id = 'sweep';
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tabs .tab').forEach(t => {
     t.classList.remove('active');
@@ -2374,7 +2496,8 @@ function showSection(id, btn) {
     tabBtn.setAttribute('aria-selected', 'true');
     tabBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   }
-  if (id === 'leaderboard') buildLeaderboardSection();
+  if (id === 'sweep') buildSweepboardSection();
+  if (id === 'pickboard') buildPickboardSection();
   if (id === 'fixtures') {
     if (!document.getElementById('fixture-view')) buildFixturesSection();
     else showPersonFixtures(defaultPlayer());
@@ -2429,39 +2552,25 @@ people.forEach((person, i) => {
 });
 drawSec.appendChild(drawGrid);
 
-/* BUILD LEADERBOARD */
-function buildLeaderboardSection() {
-  const sec = document.getElementById('sec-leaderboard');
-  const board = withDisplayRanks(getLeaderboard());
-  const finishedMatches = countFinishedResults();
-  const hasResults = finishedMatches > 0 || scoresMeta.count > 0 ||
-    Object.keys(teamKnockout).length > 0 || board.some(e => e.sweep > 0 || e.picks > 0);
-  const leaders = board.filter(e => e.rank === 1 && e.total > 0);
-  const scoresLoading = scoresMeta.loading;
-  const scoresFailed = scoresMeta.error && finishedMatches === 0 && scoresMeta.count === 0;
+/* BUILD STANDINGS PANELS */
+function renderStandingsPanel(opts) {
+  const {
+    secId, title, intro, rulesHtml, board, hasResults, leaders,
+    scoresLoading, scoresFailed, picksLoading, picksFailed, rowClickSection, rowSubtitle,
+  } = opts;
 
-  let html = `<div class="section-title">Standings</div>
-    <div class="lb-rules">
-      <h3>Scoring rules</h3>
-      <div class="lb-rules-grid">
-        <div class="lb-rule"><strong>${SCORING.win}</strong>pts per team win</div>
-        <div class="lb-rule"><strong>${SCORING.draw}</strong>pt per team draw</div>
-        <div class="lb-rule"><strong>+${SCORING.knockout.r32}</strong>per KO round</div>
-        <div class="lb-rule"><strong>+${SCORING.worldCupWinner}</strong>WC winner</div>
-        <div class="lb-rule"><strong>+${PICK_SCORING.winner}</strong>pick winner</div>
-        <div class="lb-rule"><strong>+${PICK_SCORING.goalDiff}</strong>goal diff (wins only)</div>
-        <div class="lb-rule"><strong>+${PICK_SCORING.exactScore}</strong>exact score</div>
-        <div class="lb-rule"><strong>1h</strong>lock before kickoff</div>
-      </div>
-    </div>`;
-
+  const sec = document.getElementById(secId);
   const tiedLeaders = board.filter(e => e.rank === 1 && e.total > 0);
   const thirds = board.filter(e => e.rank === 3);
   const soloThird = thirds.length === 1 ? thirds[0] : null;
+  const boardLoading = scoresLoading || picksLoading;
+
+  let html = `<div class="section-title">${title}</div>`;
+  if (intro) html += `<p class="lb-board-intro">${intro}</p>`;
+  html += rulesHtml;
 
   if (hasResults && tiedLeaders.length > 1) {
-    html += `<div class="lb-podium-tie">
-      <div class="lb-tie-podium">`;
+    html += `<div class="lb-podium-tie"><div class="lb-tie-podium">`;
     tiedLeaders.forEach(e => {
       html += `<div class="podium-slot first">
         <div class="podium-place">1st · tied</div>
@@ -2500,15 +2609,20 @@ function buildLeaderboardSection() {
       </div>`;
     });
     html += `</div>`;
-  } else if (scoresLoading) {
+  } else if (boardLoading) {
     html += `<div class="lb-empty">
-      <strong>Loading live scores…</strong><br>
-      Standings will update as soon as match results sync.
+      <strong>Loading standings…</strong><br>
+      Syncing saved predictions and match results.
     </div>`;
   } else if (scoresFailed) {
     html += `<div class="lb-empty">
       <strong>Scores temporarily unavailable</strong><br>
       ${scoresMeta.error} — tap Refresh above, or check back shortly.
+    </div>`;
+  } else if (picksFailed) {
+    html += `<div class="lb-empty">
+      <strong>Predictions temporarily unavailable</strong><br>
+      ${picksMeta.error} — showing cached picks from this device only.
     </div>`;
   } else if (!hasResults) {
     html += `<div class="lb-empty">
@@ -2518,24 +2632,22 @@ function buildLeaderboardSection() {
   }
 
   html += `<div class="lb-list">`;
-  board.forEach((e, i) => {
+  board.forEach(e => {
     const ac = avatarPalette[e.idx];
     const topClass = e.rank <= 3 ? ` top-${e.rank}` : '';
-    const teamStr = e.teams.map(n => getTeam(n).f).join(' ');
+    const teamStr = e.teams?.length ? e.teams.map(n => getTeam(n).f).join(' ') : '';
     const rankLabel = e.tiedWith ? `=${e.rank}` : `${e.rank}`;
-    const stats = hasResults
-      ? `${e.wins}W ${e.draws}D · ${e.group} grp · ${e.knockout} ko${e.picks ? ` · ${e.picks} pick pts` : ''}`
-      : '';
-    html += `<div class="lb-row${topClass}" style="cursor:pointer" onclick="activePlayer='${e.person}'; showSection('fixtures', document.querySelector('[data-tab=fixtures]'))" title="View ${e.person}'s fixtures">
+    const subtitle = rowSubtitle(e, hasResults);
+    const meta = [subtitle, teamStr].filter(Boolean).join(' · ');
+    html += `<div class="lb-row${topClass}" style="cursor:pointer" onclick="activePlayer='${e.person}'; showSection('${rowClickSection}', document.querySelector('[data-tab=${rowClickSection}]'))" title="View ${e.person}">
       <div class="lb-rank">${rankLabel}</div>
       <div class="avatar" style="background:${ac.bg};color:${ac.c};width:36px;height:36px;font-size:11px;border-radius:10px">${initials(e.person)}</div>
       <div class="lb-info">
         <div class="lb-name">${e.person}</div>
-        <div class="lb-teams">${teamStr}${stats ? ` · ${stats}` : ''}</div>
+        <div class="lb-teams">${meta || '&nbsp;'}</div>
       </div>
       <div class="lb-score-col">
         <div class="lb-total">${e.total}</div>
-        <div class="lb-breakdown">${e.sweep} sweep · ${e.picks} picks</div>
       </div>
     </div>`;
   });
@@ -2551,6 +2663,87 @@ function buildLeaderboardSection() {
   }
 
   sec.innerHTML = html;
+}
+
+function buildSweepboardSection() {
+  const board = withDisplayRanks(getSweepboard());
+  const finishedMatches = countFinishedResults();
+  const hasResults = finishedMatches > 0 || scoresMeta.count > 0 ||
+    Object.keys(teamKnockout).length > 0 || board.some(e => e.sweep > 0);
+  const leaders = board.filter(e => e.rank === 1 && e.total > 0);
+  const scoresLoading = scoresMeta.loading;
+  const scoresFailed = scoresMeta.error && finishedMatches === 0 && scoresMeta.count === 0;
+
+  const rulesHtml = `<div class="lb-rules">
+      <h3>Sweepstake scoring</h3>
+      <div class="lb-rules-grid">
+        <div class="lb-rule"><strong>${SCORING.win}</strong>pts per team win</div>
+        <div class="lb-rule"><strong>${SCORING.draw}</strong>pt per team draw</div>
+        <div class="lb-rule"><strong>+${SCORING.knockout.r32}</strong>per KO round</div>
+        <div class="lb-rule"><strong>+${SCORING.worldCupWinner}</strong>WC winner</div>
+      </div>
+    </div>`;
+
+  renderStandingsPanel({
+    secId: 'sec-sweep',
+    title: 'Sweepstake standings',
+    intro: 'Points from your <strong>assigned teams</strong> only — wins, draws, and knockout progress. Prediction picks are tracked separately on the Pick Board.',
+    rulesHtml,
+    board,
+    hasResults,
+    leaders,
+    scoresLoading,
+    scoresFailed,
+    rowClickSection: 'fixtures',
+    rowSubtitle: (e, hasRes) => hasRes ? `${e.wins}W ${e.draws}D · ${e.group} grp · ${e.knockout} ko` : '',
+  });
+}
+
+function buildPickboardSection() {
+  const board = withDisplayRanks(getPickboard());
+  const finishedMatches = countFinishedResults();
+  const totalSavedPicks = countAllSavedPicks();
+  const anyoneHasPicks = board.some(e => e.pickSaved > 0) || totalSavedPicks > 0;
+  const hasResults = finishedMatches > 0 || scoresMeta.count > 0 || board.some(e => e.picks > 0) || anyoneHasPicks;
+  const leaders = board.filter(e => e.rank === 1 && e.total > 0);
+  const scoresLoading = scoresMeta.loading;
+  const picksLoading = picksMeta.loading;
+  const scoresFailed = scoresMeta.error && finishedMatches === 0 && scoresMeta.count === 0;
+  const picksFailed = picksMeta.error && totalSavedPicks === 0;
+
+  const rulesHtml = `<div class="lb-rules">
+      <h3>Prediction scoring</h3>
+      <div class="lb-rules-grid">
+        <div class="lb-rule"><strong>+${PICK_SCORING.winner}</strong>pick winner</div>
+        <div class="lb-rule"><strong>+${PICK_SCORING.goalDiff}</strong>goal diff (wins only)</div>
+        <div class="lb-rule"><strong>+${PICK_SCORING.exactScore}</strong>exact score</div>
+        <div class="lb-rule"><strong>1h</strong>lock before kickoff</div>
+      </div>
+    </div>`;
+
+  const syncNote = totalSavedPicks > 0
+    ? `${totalSavedPicks} saved prediction${totalSavedPicks === 1 ? '' : 's'} loaded${picksMeta.updatedAt ? ` · updated ${new Date(picksMeta.updatedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}. `
+    : '';
+
+  renderStandingsPanel({
+    secId: 'sec-pickboard',
+    title: 'Pick Board',
+    intro: syncNote + 'Points from your <strong>match predictions</strong> only — separate from sweepstake team points.',
+    rulesHtml,
+    board,
+    hasResults,
+    leaders,
+    scoresLoading,
+    scoresFailed,
+    picksLoading,
+    picksFailed,
+    rowClickSection: 'picks',
+    rowSubtitle: (e) => {
+      if (e.pickSaved > 0 && e.picks > 0) return `${e.pickSaved} picks · ${e.pickWins} scored`;
+      if (e.pickSaved > 0) return `${e.pickSaved} pick${e.pickSaved === 1 ? '' : 's'} saved`;
+      return '';
+    },
+  });
 }
 
 /* BUILD FIXTURES */
@@ -2601,11 +2794,11 @@ function showPersonFixtures(person) {
   const myTeams = myNames.map(n => getTeam(n));
   const myFix = fixtures.map((f, i) => ({ ...f, idx: i })).filter(f => myNames.includes(f.h) || myNames.includes(f.a));
   const ac = avatarPalette[people.indexOf(person)];
-  const score = calcPlayerScore(person);
+  const score = calcSweepScore(person);
 
   let html = `<div class="fix-header">
     <div class="share-bar">
-      <span class="share-bar-text">Share <strong>${person}'s</strong> page · ${score.total} pts</span>
+      <span class="share-bar-text">Share <strong>${person}'s</strong> page · ${score.sweep} sweep pts</span>
       <button class="share-btn" id="share-btn-main" onclick="copyShareLink('${person}', this)">Copy personal link</button>
     </div>
     <div class="fix-my-teams">` +
@@ -2683,7 +2876,7 @@ function buildPicksSection() {
   const myPts = player ? calcPickPoints(player).total : 0;
 
   let html = `<div class="section-title">My picks</div>
-    <p class="pick-intro">Predict the winner <em>and</em> score for each match before kickoff. Picks lock <strong>1 hour before kickoff</strong> (times shown in your local timezone). One entry per match per person — bonus points stack on top of your sweepstake score.</p>
+    <p class="pick-intro">Predict the winner <em>and</em> score for each match before kickoff. Picks lock <strong>1 hour before kickoff</strong> (times shown in your local timezone). One entry per match per person — prediction points are tracked separately on the <strong>Pick Board</strong>.</p>
     <div class="person-tabs-wrap" style="margin-bottom:1rem">
       <div class="person-tabs-label">Who are you?</div>` +
     personSelectHtml('Who are you?', player, 'setPicksPlayer', 'Choose your name') +
@@ -2760,19 +2953,19 @@ function buildPicksSection() {
 
     if (live) {
       if (saved) {
-        html += `<div class="pick-saved-label">Your pick: ${pickOutcomeLabel(f, saved.pick)} · ${saved.scoreH}–${saved.scoreA} · Match in progress</div>`;
+        html += `<div class="pick-saved-label">Your pick: ${pickOutcomeLabel(f, saved.pick)} · ${saved.scoreH}–${saved.scoreA} · Match in progress${pickPendingNote(saved)}</div>`;
       } else {
         html += `<div class="pick-no-pick">No pick submitted for this match</div>`;
       }
     } else if (done) {
       if (saved) {
         const ptsDetail = pts > 0 ? ` · <span class="pick-result-pts">+${pts} pts</span>` : ' · 0 pts';
-        html += `<div class="pick-saved-label">Your pick: ${pickOutcomeLabel(f, saved.pick)} · ${saved.scoreH}–${saved.scoreA}${ptsDetail}</div>`;
+        html += `<div class="pick-saved-label">Your pick: ${pickOutcomeLabel(f, saved.pick)} · ${saved.scoreH}–${saved.scoreA}${ptsDetail}${pickPendingNote(saved)}</div>`;
       } else {
         html += `<div class="pick-no-pick">No pick submitted for this match</div>`;
       }
     } else if (saved && lockedMatch) {
-      html += `<div class="pick-saved-label">✓ Your pick: ${pickOutcomeLabel(f, saved.pick)} · ${saved.scoreH}–${saved.scoreA} · Locked in</div>`;
+      html += `<div class="pick-saved-label">✓ Your pick: ${pickOutcomeLabel(f, saved.pick)} · ${saved.scoreH}–${saved.scoreA} · Locked in${pickPendingNote(saved)}</div>`;
     } else if (player && !lockedMatch) {
       const pick = draft.pick || '';
       const scoreH = draft.scoreH ?? '';
@@ -2863,16 +3056,33 @@ function buildGroupsSection() {
     if (remembered) activePlayer = remembered;
   }
 
-  const tabMap = { draw: 'draw', leaderboard: 'leaderboard', fixtures: 'fixtures', groups: 'groups', picks: 'picks' };
+  const tabMap = {
+    draw: 'draw',
+    leaderboard: 'sweep',
+    sweep: 'sweep',
+    fixtures: 'fixtures',
+    groups: 'groups',
+    picks: 'picks',
+    pickboard: 'pickboard',
+  };
   let startTab = 'draw';
-  if (urlTab && tabMap[urlTab]) startTab = urlTab;
+  if (urlTab && tabMap[urlTab]) startTab = tabMap[urlTab];
   else if (urlPlayer) startTab = 'fixtures';
 
-  if (startTab === 'leaderboard') document.title = 'Leaderboard · World Cup 2026 Sweepstake';
+  if (startTab === 'sweep') document.title = 'Sweepstake · World Cup 2026';
+  if (startTab === 'pickboard') document.title = 'Pick Board · World Cup 2026';
   if (startTab !== 'draw') showSection(startTab);
   else stopPickCountdown();
-  loadScores();
-  loadPredictions();
+  loadPersistedPicks();
+  (async function boot() {
+    await Promise.all([loadScores(), loadPredictions()]);
+    if (scoresMeta.lastApiFt > scoresMeta.count) {
+      await new Promise(r => setTimeout(r, 2000));
+      await loadScores();
+    }
+    await loadPredictions();
+    refreshLeaderboards();
+  })();
   setInterval(loadScores, 3 * 60 * 1000);
   setInterval(loadPredictions, 3 * 60 * 1000);
 })();
