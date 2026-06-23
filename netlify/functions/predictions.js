@@ -140,9 +140,7 @@ exports.handler = async function (event) {
       if (pick === 'draw' && scoreH !== scoreA) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Draw needs equal scores' }) };
       }
-      const adminKey = process.env.ADMIN_KEY;
-      const force = body.force === true && adminKey && body.adminKey === adminKey;
-      if (!force && isLocked(matchIdx)) {
+      if (isLocked(matchIdx)) {
         return { statusCode: 403, headers, body: JSON.stringify({ error: 'Predictions locked for this match' }) };
       }
 
