@@ -6,10 +6,8 @@ const { connectLambda, getStore } = require('@netlify/blobs');
 
 const MATCH_IDX = 44;
 const PICKS = [
-  { player: 'Nabeel', pick: 'home', scoreH: 3, scoreA: 0 },
+  { player: 'Sagar', pick: 'home', scoreH: 4, scoreA: 0 },
   { player: 'Kaushika', pick: 'home', scoreH: 4, scoreA: 1 },
-  { player: 'Sagar', pick: 'home', scoreH: 5, scoreA: 0 },
-  { player: 'Basel', pick: 'home', scoreH: 3, scoreA: 1 },
 ];
 
 const headers = {
@@ -44,6 +42,6 @@ exports.handler = async function (event) {
   return {
     statusCode: 200,
     headers,
-    body: JSON.stringify({ ok: true, saved, note: 'Chaouki skipped — already had a pick' }),
+    body: JSON.stringify({ ok: true, saved, note: 'Match 44 only — Portugal vs Uzbekistan' }),
   };
 };
