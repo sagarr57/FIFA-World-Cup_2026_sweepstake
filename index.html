@@ -1672,34 +1672,94 @@ const fixtures = [
   {g:"I",d:"23 Jun",t:"01:00",h:"Norway",a:"Senegal"},
   {g:"J",d:"23 Jun",t:"04:00",h:"Jordan",a:"Algeria"},
   {g:"K",d:"23 Jun",t:"18:00",h:"Portugal",a:"Uzbekistan"},
-  {g:"L",d:"23 Jun",t:"21:00",h:"England",a:"Panama"},
-  {g:"L",d:"24 Jun",t:"00:00",h:"Croatia",a:"Ghana"},
+  {g:"L",d:"23 Jun",t:"21:00",h:"England",a:"Ghana"},
+  {g:"L",d:"24 Jun",t:"00:00",h:"Panama",a:"Croatia"},
   {g:"K",d:"24 Jun",t:"03:00",h:"Colombia",a:"DR Congo"},
-  {g:"A",d:"25 Jun",t:"20:00",h:"Mexico",a:"Czechia"},
   {g:"A",d:"25 Jun",t:"20:00",h:"South Africa",a:"South Korea"},
-  {g:"B",d:"25 Jun",t:"23:00",h:"Canada",a:"Switzerland"},
+  {g:"A",d:"25 Jun",t:"20:00",h:"Czechia",a:"Mexico"},
   {g:"B",d:"25 Jun",t:"23:00",h:"Bosnia & Herz.",a:"Qatar"},
-  {g:"C",d:"26 Jun",t:"20:00",h:"Brazil",a:"Scotland"},
+  {g:"B",d:"25 Jun",t:"23:00",h:"Switzerland",a:"Canada"},
+  {g:"C",d:"26 Jun",t:"20:00",h:"Scotland",a:"Brazil"},
   {g:"C",d:"26 Jun",t:"20:00",h:"Morocco",a:"Haiti"},
-  {g:"D",d:"26 Jun",t:"23:00",h:"USA",a:"Turkey"},
   {g:"D",d:"26 Jun",t:"23:00",h:"Paraguay",a:"Australia"},
-  {g:"E",d:"26 Jun",t:"23:00",h:"Germany",a:"Ecuador"},
-  {g:"E",d:"26 Jun",t:"23:00",h:"Ivory Coast",a:"Curacao"},
-  {g:"F",d:"27 Jun",t:"02:00",h:"Netherlands",a:"Tunisia"},
+  {g:"D",d:"26 Jun",t:"23:00",h:"Turkey",a:"USA"},
+  {g:"E",d:"26 Jun",t:"23:00",h:"Curacao",a:"Ivory Coast"},
+  {g:"E",d:"26 Jun",t:"23:00",h:"Ecuador",a:"Germany"},
   {g:"F",d:"27 Jun",t:"02:00",h:"Japan",a:"Sweden"},
-  {g:"G",d:"27 Jun",t:"20:00",h:"Belgium",a:"New Zealand"},
+  {g:"F",d:"27 Jun",t:"02:00",h:"Tunisia",a:"Netherlands"},
   {g:"G",d:"27 Jun",t:"20:00",h:"Egypt",a:"Iran"},
-  {g:"H",d:"27 Jun",t:"20:00",h:"Spain",a:"Uruguay"},
+  {g:"G",d:"27 Jun",t:"20:00",h:"New Zealand",a:"Belgium"},
+  {g:"H",d:"27 Jun",t:"20:00",h:"Uruguay",a:"Spain"},
   {g:"H",d:"27 Jun",t:"20:00",h:"Cape Verde",a:"Saudi Arabia"},
-  {g:"I",d:"27 Jun",t:"23:00",h:"France",a:"Norway"},
   {g:"I",d:"27 Jun",t:"23:00",h:"Senegal",a:"Iraq"},
-  {g:"J",d:"27 Jun",t:"23:00",h:"Argentina",a:"Jordan"},
+  {g:"I",d:"27 Jun",t:"23:00",h:"Norway",a:"France"},
   {g:"J",d:"27 Jun",t:"23:00",h:"Algeria",a:"Austria"},
+  {g:"J",d:"27 Jun",t:"23:00",h:"Jordan",a:"Argentina"},
   {g:"K",d:"27 Jun",t:"02:00",h:"Colombia",a:"Portugal"},
   {g:"K",d:"27 Jun",t:"02:00",h:"DR Congo",a:"Uzbekistan"},
-  {g:"L",d:"27 Jun",t:"02:00",h:"England",a:"Ghana"},
-  {g:"L",d:"27 Jun",t:"02:00",h:"Croatia",a:"Panama"}
+  {g:"L",d:"27 Jun",t:"02:00",h:"Panama",a:"England"},
+  {g:"L",d:"27 Jun",t:"02:00",h:"Croatia",a:"Ghana"}
 ];
+
+// Pre-fixture-correction teams by matchIdx (Jun 2026 schedule fix)
+const PRE_FIXTURE_BY_IDX = {
+  45: { h: 'England', a: 'Panama' }, 46: { h: 'Croatia', a: 'Ghana' },
+  48: { h: 'Mexico', a: 'Czechia' }, 49: { h: 'South Africa', a: 'South Korea' },
+  50: { h: 'Canada', a: 'Switzerland' }, 51: { h: 'Bosnia & Herz.', a: 'Qatar' },
+  52: { h: 'Brazil', a: 'Scotland' },
+  54: { h: 'USA', a: 'Turkey' }, 55: { h: 'Paraguay', a: 'Australia' },
+  56: { h: 'Germany', a: 'Ecuador' }, 57: { h: 'Ivory Coast', a: 'Curacao' },
+  58: { h: 'Netherlands', a: 'Tunisia' }, 59: { h: 'Japan', a: 'Sweden' },
+  60: { h: 'Belgium', a: 'New Zealand' }, 61: { h: 'Egypt', a: 'Iran' },
+  62: { h: 'Spain', a: 'Uruguay' },
+  64: { h: 'France', a: 'Norway' }, 65: { h: 'Senegal', a: 'Iraq' },
+  66: { h: 'Argentina', a: 'Jordan' }, 67: { h: 'Algeria', a: 'Austria' },
+  70: { h: 'England', a: 'Ghana' }, 71: { h: 'Croatia', a: 'Panama' },
+};
+const PICK_FIXTURE_MIGRATION_VERSION = 1;
+
+function findFixtureIdxByTeams(home, away) {
+  return fixtures.findIndex(f => (f.h === home && f.a === away) || (f.h === away && f.a === home));
+}
+
+function reorientPickForFixture(pick, oldH, oldA, newF) {
+  const goals = {
+    [oldH]: pick.pick === 'away' ? pick.scoreA : pick.scoreH,
+    [oldA]: pick.pick === 'away' ? pick.scoreH : pick.scoreA,
+  };
+  const scoreH = goals[newF.h];
+  const scoreA = goals[newF.a];
+  let side = pick.pick;
+  if (pick.pick !== 'draw') {
+    const winner = pick.pick === 'home' ? oldH : oldA;
+    side = winner === newF.h ? 'home' : 'away';
+  }
+  return { ...pick, pick: side, scoreH, scoreA };
+}
+
+function migrateFixturePicks() {
+  try {
+    const key = 'wcPickFixtureMigration';
+    if (localStorage.getItem(key) === String(PICK_FIXTURE_MIGRATION_VERSION)) return;
+    const next = {};
+    Object.values(memberPicks).forEach(p => {
+      if (!p?.player || p.matchIdx == null) return;
+      const old = PRE_FIXTURE_BY_IDX[p.matchIdx];
+      if (!old) {
+        next[pickStorageKey(p.player, p.matchIdx)] = p;
+        return;
+      }
+      const newIdx = findFixtureIdxByTeams(old.h, old.a);
+      if (newIdx < 0) return;
+      const migrated = reorientPickForFixture(p, old.h, old.a, fixtures[newIdx]);
+      migrated.matchIdx = newIdx;
+      next[pickStorageKey(p.player, newIdx)] = migrated;
+    });
+    memberPicks = next;
+    persistMemberPicks();
+    localStorage.setItem(key, String(PICK_FIXTURE_MIGRATION_VERSION));
+  } catch { /* ignore */ }
+}
 
 const avatarPalette = [
   {bg:"#E6F1FB",c:"#0C447C"},{bg:"#EEEDFE",c:"#3C3489"},{bg:"#E1F5EE",c:"#085041"},
@@ -1919,6 +1979,7 @@ function applyApiPicks(picksArray) {
   });
   memberPicks = merged;
   persistMemberPicks();
+  migrateFixturePicks();
   if (pending.length) syncPendingPicks(pending);
 }
 
@@ -2179,11 +2240,17 @@ const matchResults = {};
 const teamKnockout = {};
 let scoresMeta = { updatedAt: null, error: null, loading: true, count: 0, lastApiFt: 0 };
 
+const RESULTS_CACHE_VERSION = 2;
+
 function loadPersistedResults() {
   try {
     const raw = localStorage.getItem('wcMatchResults');
     if (!raw) return;
     const saved = JSON.parse(raw);
+    if (saved.version !== RESULTS_CACHE_VERSION) {
+      localStorage.removeItem('wcMatchResults');
+      return;
+    }
     Object.entries(saved.results || {}).forEach(([k, v]) => {
       if (v?.h != null && !matchResults[k]) matchResults[k] = v;
     });
@@ -2194,6 +2261,7 @@ function loadPersistedResults() {
 function persistResults() {
   try {
     localStorage.setItem('wcMatchResults', JSON.stringify({
+      version: RESULTS_CACHE_VERSION,
       results: { ...matchResults },
       knockout: { ...teamKnockout },
       savedAt: new Date().toISOString(),
@@ -2269,11 +2337,18 @@ function applyApiScores(data) {
     const home = mapApiTeam(af.home);
     const away = mapApiTeam(af.away);
     if (!home || !away) return;
-    const idx = indexMap[`${home}|${away}`];
+    let idx = indexMap[`${home}|${away}`];
+    let swapScores = false;
+    if (idx == null) {
+      idx = indexMap[`${away}|${home}`];
+      swapScores = idx != null;
+    }
     if (idx == null) return;
+    const h = swapScores ? af.a : af.h;
+    const a = swapScores ? af.h : af.a;
     const prev = matchResults[idx];
     if (af.status === 'FT' || !prev?.h || prev.live) {
-      matchResults[idx] = { h: af.h, a: af.a, live: af.status === 'LIVE' };
+      matchResults[idx] = { h, a, live: af.status === 'LIVE' };
     }
   });
 
@@ -3074,6 +3149,7 @@ function buildGroupsSection() {
   if (startTab !== 'draw') showSection(startTab);
   else stopPickCountdown();
   loadPersistedPicks();
+  migrateFixturePicks();
   (async function boot() {
     await Promise.all([loadScores(), loadPredictions()]);
     if (scoresMeta.lastApiFt > scoresMeta.count) {
