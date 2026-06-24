@@ -477,6 +477,20 @@
       background: var(--border);
     }
     .date-head:first-of-type { padding-top: 8px; }
+    .ko-round-head {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 20px 0 8px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--accent);
+    }
+    .fix-team.placeholder .name {
+      color: var(--text-faint);
+      font-style: italic;
+      font-size: 12px;
+    }
     .fixture-row {
       display: grid;
       grid-template-columns: 56px 1fr auto 1fr;
@@ -1699,6 +1713,38 @@ const fixtures = [
   {g:"K",d:"28 Jun",t:"00:30",u:"2026-06-27T23:30:00Z",h:"DR Congo",a:"Uzbekistan"},
   {g:"L",d:"27 Jun",t:"22:00",u:"2026-06-27T21:00:00Z",h:"Panama",a:"England"},
   {g:"L",d:"27 Jun",t:"22:00",u:"2026-06-27T21:00:00Z",h:"Croatia",a:"Ghana"},
+  {g:"KO",ko:"Round of 32",d:"28 Jun",t:"20:00",u:"2026-06-28T19:00:00Z",h:"Runner-up Group A",a:"Runner-up Group B",mid:"73"},
+  {g:"KO",ko:"Round of 32",d:"29 Jun",t:"18:00",u:"2026-06-29T17:00:00Z",h:"Winner Group C",a:"Runner-up Group F",mid:"76"},
+  {g:"KO",ko:"Round of 32",d:"29 Jun",t:"21:30",u:"2026-06-29T20:30:00Z",h:"Germany",a:"3rd Group A/B/C/D/F",mid:"74"},
+  {g:"KO",ko:"Round of 32",d:"30 Jun",t:"02:00",u:"2026-06-30T01:00:00Z",h:"Winner Group F",a:"Runner-up Group C",mid:"75"},
+  {g:"KO",ko:"Round of 32",d:"30 Jun",t:"18:00",u:"2026-06-30T17:00:00Z",h:"Runner-up Group E",a:"Runner-up Group I",mid:"78"},
+  {g:"KO",ko:"Round of 32",d:"30 Jun",t:"22:00",u:"2026-06-30T21:00:00Z",h:"Winner Group I",a:"3rd Group C/D/F/G/H",mid:"77"},
+  {g:"KO",ko:"Round of 32",d:"1 Jul",t:"02:00",u:"2026-07-01T01:00:00Z",h:"Mexico",a:"3rd Group C/E/F/H/I",mid:"79"},
+  {g:"KO",ko:"Round of 32",d:"1 Jul",t:"17:00",u:"2026-07-01T16:00:00Z",h:"Winner Group L",a:"3rd Group E/H/I/J/K",mid:"80"},
+  {g:"KO",ko:"Round of 32",d:"1 Jul",t:"21:00",u:"2026-07-01T20:00:00Z",h:"Winner Group G",a:"3rd Group A/E/H/I/J",mid:"82"},
+  {g:"KO",ko:"Round of 32",d:"2 Jul",t:"01:00",u:"2026-07-02T00:00:00Z",h:"USA",a:"3rd Group B/E/F/I/J",mid:"81"},
+  {g:"KO",ko:"Round of 32",d:"2 Jul",t:"20:00",u:"2026-07-02T19:00:00Z",h:"Winner Group H",a:"Runner-up Group J",mid:"84"},
+  {g:"KO",ko:"Round of 32",d:"3 Jul",t:"00:00",u:"2026-07-02T23:00:00Z",h:"Runner-up Group K",a:"Runner-up Group L",mid:"83"},
+  {g:"KO",ko:"Round of 32",d:"3 Jul",t:"04:00",u:"2026-07-03T03:00:00Z",h:"Winner Group B",a:"3rd Group E/F/G/I/J",mid:"85"},
+  {g:"KO",ko:"Round of 32",d:"3 Jul",t:"19:00",u:"2026-07-03T18:00:00Z",h:"Runner-up Group D",a:"Runner-up Group G",mid:"88"},
+  {g:"KO",ko:"Round of 32",d:"3 Jul",t:"23:00",u:"2026-07-03T22:00:00Z",h:"Winner Group J",a:"Runner-up Group H",mid:"86"},
+  {g:"KO",ko:"Round of 32",d:"4 Jul",t:"02:30",u:"2026-07-04T01:30:00Z",h:"Winner Group K",a:"3rd Group D/E/I/J/L",mid:"87"},
+  {g:"KO",ko:"Round of 16",d:"4 Jul",t:"18:00",u:"2026-07-04T17:00:00Z",h:"Winner Match 73",a:"Winner Match 75",mid:"90"},
+  {g:"KO",ko:"Round of 16",d:"4 Jul",t:"22:00",u:"2026-07-04T21:00:00Z",h:"Winner Match 74",a:"Winner Match 77",mid:"89"},
+  {g:"KO",ko:"Round of 16",d:"5 Jul",t:"21:00",u:"2026-07-05T20:00:00Z",h:"Winner Match 76",a:"Winner Match 78",mid:"91"},
+  {g:"KO",ko:"Round of 16",d:"6 Jul",t:"01:00",u:"2026-07-06T00:00:00Z",h:"Winner Match 79",a:"Winner Match 80",mid:"92"},
+  {g:"KO",ko:"Round of 16",d:"6 Jul",t:"20:00",u:"2026-07-06T19:00:00Z",h:"Winner Match 83",a:"Winner Match 84",mid:"93"},
+  {g:"KO",ko:"Round of 16",d:"7 Jul",t:"01:00",u:"2026-07-07T00:00:00Z",h:"Winner Match 81",a:"Winner Match 82",mid:"94"},
+  {g:"KO",ko:"Round of 16",d:"7 Jul",t:"17:00",u:"2026-07-07T16:00:00Z",h:"Winner Match 86",a:"Winner Match 88",mid:"95"},
+  {g:"KO",ko:"Round of 16",d:"7 Jul",t:"21:00",u:"2026-07-07T20:00:00Z",h:"Winner Match 85",a:"Winner Match 87",mid:"96"},
+  {g:"KO",ko:"Quarter-final",d:"9 Jul",t:"21:00",u:"2026-07-09T20:00:00Z",h:"Winner Match 89",a:"Winner Match 90",mid:"97"},
+  {g:"KO",ko:"Quarter-final",d:"10 Jul",t:"20:00",u:"2026-07-10T19:00:00Z",h:"Winner Match 93",a:"Winner Match 94",mid:"98"},
+  {g:"KO",ko:"Quarter-final",d:"11 Jul",t:"22:00",u:"2026-07-11T21:00:00Z",h:"Winner Match 91",a:"Winner Match 92",mid:"99"},
+  {g:"KO",ko:"Quarter-final",d:"12 Jul",t:"02:00",u:"2026-07-12T01:00:00Z",h:"Winner Match 95",a:"Winner Match 96",mid:"100"},
+  {g:"KO",ko:"Semi-final",d:"14 Jul",t:"20:00",u:"2026-07-14T19:00:00Z",h:"Winner Match 97",a:"Winner Match 98",mid:"101"},
+  {g:"KO",ko:"Semi-final",d:"15 Jul",t:"20:00",u:"2026-07-15T19:00:00Z",h:"Winner Match 99",a:"Winner Match 100",mid:"102"},
+  {g:"KO",ko:"Third-place",d:"18 Jul",t:"22:00",u:"2026-07-18T21:00:00Z",h:"Loser Match 101",a:"Loser Match 102",mid:"103"},
+  {g:"KO",ko:"Final",d:"19 Jul",t:"20:00",u:"2026-07-19T19:00:00Z",h:"Winner Match 101",a:"Winner Match 102",mid:"104"},
 ];
 
 // Pre-fixture-correction teams by matchIdx (Jun 2026 schedule fix)
@@ -1798,6 +1844,54 @@ function seededShuffle(arr, seed) {
 
 function getTeam(n) { return allTeams.find(t => t.n === n) || {n, f:"🏳", g:"?"}; }
 
+function isKnockoutFixture(f) { return f?.g === 'KO'; }
+
+function firstKnockoutKickoffMs() {
+  const ko = fixtures.filter(isKnockoutFixture);
+  if (!ko.length) return Infinity;
+  return Math.min(...ko.map(fixtureKickoffMs));
+}
+
+function isKnockoutStageActive() {
+  return Date.now() >= firstKnockoutKickoffMs();
+}
+
+function isFixtureVisibleInSchedule(f) {
+  return isKnockoutStageActive() ? isKnockoutFixture(f) : !isKnockoutFixture(f);
+}
+
+function fixtureRowsWithIdx() {
+  return fixtures.map((f, i) => ({ ...f, idx: i })).filter(isFixtureVisibleInSchedule);
+}
+
+function fixtureMetaLabel(f) {
+  return isKnockoutFixture(f) ? f.ko : `Group ${f.g}`;
+}
+
+function isPlaceholderTeam(name) {
+  if (!name) return true;
+  return /^(TBD|Winner|Runner-up|Loser|3rd Group)/i.test(name);
+}
+
+function teamsKnownForPick(f) {
+  return f && !isPlaceholderTeam(f.h) && !isPlaceholderTeam(f.a);
+}
+
+function matchWinnerFromResult(result) {
+  if (!result || result.h == null || result.a == null) return null;
+  if (result.winner === 'home' || result.winner === 'away') return result.winner;
+  if (result.homeWinner) return 'home';
+  if (result.awayWinner) return 'away';
+  if (result.h > result.a) return 'home';
+  if (result.a > result.h) return 'away';
+  return null;
+}
+
+function teamFlag(name) {
+  if (isPlaceholderTeam(name)) return '🏳';
+  return getTeam(name).f;
+}
+
 const shuffled = seededShuffle(allTeams, 20260611);
 const draw = {};
 people.forEach((p, i) => { draw[p] = shuffled.slice(i*3, i*3+3).map(t => t.n); });
@@ -1805,7 +1899,7 @@ people.forEach((p, i) => { draw[p] = shuffled.slice(i*3, i*3+3).map(t => t.n); }
 /* ── MEMBER PICKS (saved via /api/predictions on Netlify) ── */
 const PICK_SCORING = { winner: 3, goalDiff: 2, exactScore: 5 };
 const PICK_LOCK_MS = 60 * 60 * 1000;
-const PICK_MONTHS = { Jun: 5 };
+const PICK_MONTHS = { Jun: 5, Jul: 6 };
 // Schedule times in fixtures[] are UK summer time (BST = UTC+1), not GST.
 const SCHEDULE_UTC_OFFSET_H = 1;
 
@@ -1856,8 +1950,16 @@ function fixtureKickoffMs(f) {
   return Date.UTC(2026, PICK_MONTHS[mon], Number(day), h - SCHEDULE_UTC_OFFSET_H, m || 0);
 }
 
+function sortFixturesByKickoff(rows, { descending = false } = {}) {
+  return [...rows].sort((a, b) => {
+    const diff = fixtureKickoffMs(a) - fixtureKickoffMs(b);
+    return descending ? -diff : diff;
+  });
+}
+
 function isPickLocked(idx, f) {
   if (hasMatchScore(idx)) return true;
+  if (!teamsKnownForPick(f)) return true;
   return Date.now() >= fixtureKickoffMs(f) - PICK_LOCK_MS;
 }
 
@@ -2025,9 +2127,10 @@ function pickOutcomeLabel(f, pick) {
   return 'Draw';
 }
 
-function scoreMemberPick(pick, result) {
+function scoreMemberPick(pick, result, f) {
   if (!pick || !result || result.h == null || result.a == null) return 0;
-  const actual = result.h === result.a ? 'draw' : result.h > result.a ? 'home' : 'away';
+  let actual = matchWinnerFromResult(result);
+  if (!actual) actual = result.h === result.a ? 'draw' : result.h > result.a ? 'home' : 'away';
   let pts = 0;
   if (pick.pick === actual) pts += PICK_SCORING.winner;
   const predDiff = pick.scoreH - pick.scoreA;
@@ -2047,7 +2150,7 @@ function calcPickPoints(person) {
     saved++;
     if (!isMatchPlayed(i)) return;
     const result = matchResults[i];
-    const pts = scoreMemberPick(pick, result);
+    const pts = scoreMemberPick(pick, result, f);
     total += pts;
     if (pts > 0) correct++;
   });
@@ -2245,7 +2348,7 @@ const matchResults = {};
 const teamKnockout = {};
 let scoresMeta = { updatedAt: null, error: null, loading: true, count: 0, lastApiFt: 0 };
 
-const RESULTS_CACHE_VERSION = 3;
+const RESULTS_CACHE_VERSION = 4;
 
 function loadPersistedResults() {
   try {
@@ -2311,7 +2414,66 @@ function parseKoRound(round) {
   if (/quarter/i.test(r)) return 'qf';
   if (/semi/i.test(r)) return 'sf';
   if (/^final$/i.test(r)) return 'final';
+  if (/third/i.test(r)) return null;
   return null;
+}
+
+function koRoundFromFixture(f) {
+  if (f?.ko) return parseKoRound(f.ko);
+  return null;
+}
+
+function resolveKoWinner(f, h, a, af) {
+  if (af?.homeWinner) return 'home';
+  if (af?.awayWinner) return 'away';
+  if (h > a) return 'home';
+  if (a > h) return 'away';
+  return null;
+}
+
+function applyKnockoutSchedule(schedule) {
+  if (!schedule?.length) return;
+  const byMid = new Map();
+  schedule.forEach(s => {
+    if (s.matchId) byMid.set(String(s.matchId), s);
+  });
+
+  fixtures.forEach((f, i) => {
+    if (!isKnockoutFixture(f)) return;
+    const slot = byMid.get(String(f.mid)) || schedule.find(s =>
+      s.round === f.ko && fixtureKeyLoose(s.home, s.away, f.h, f.a)
+    );
+    if (!slot) return;
+
+    const home = mapApiTeam(slot.home) || slot.home;
+    const away = mapApiTeam(slot.away) || slot.away;
+    if (home && !isPlaceholderTeam(home)) f.h = home;
+    if (away && !isPlaceholderTeam(away)) f.a = away;
+
+    if ((slot.status === 'FT' || slot.status === 'LIVE') && slot.h != null && slot.a != null) {
+      let h = slot.h;
+      let a = slot.a;
+      const swap = f.h !== home && f.h === away;
+      if (swap) { h = slot.a; a = slot.h; }
+      const prev = matchResults[i];
+      const winner = resolveKoWinner(f, h, a, slot);
+      const pens = slot.pens || (h === a && winner);
+      if (slot.status === 'FT' || !prev?.h || prev.live) {
+        matchResults[i] = {
+          h, a, live: slot.status === 'LIVE',
+          pens, winner,
+          homeWinner: slot.homeWinner, awayWinner: slot.awayWinner,
+        };
+      }
+    }
+  });
+}
+
+function fixtureKeyLoose(apiH, apiA, fixH, fixA) {
+  const h = mapApiTeam(apiH) || apiH;
+  const a = mapApiTeam(apiA) || apiA;
+  if (isPlaceholderTeam(h) || isPlaceholderTeam(a)) return false;
+  return (fixH === h && fixA === a) || (fixH === a && fixA === h);
 }
 
 function deriveKnockout(apiFixtures) {
@@ -2322,7 +2484,17 @@ function deriveKnockout(apiFixtures) {
     if (!rk || f.status !== 'FT') return;
     const home = mapApiTeam(f.home);
     const away = mapApiTeam(f.away);
-    [[home, f.homeWinner], [away, f.awayWinner]].forEach(([team, won]) => {
+    if (!home || !away || isPlaceholderTeam(home) || isPlaceholderTeam(away)) return;
+
+    let homeWon = f.homeWinner === true;
+    let awayWon = f.awayWinner === true;
+    if (!homeWon && !awayWon && f.h != null && f.a != null) {
+      if (f.h > f.a) homeWon = true;
+      else if (f.a > f.h) awayWon = true;
+    }
+    if (!homeWon && !awayWon) return;
+
+    [[home, homeWon], [away, awayWon]].forEach(([team, won]) => {
       if (!team) return;
       const reached = rk === 'final' && won ? 'winner' : rk;
       if (!progress[team] || rank[reached] > rank[progress[team]]) progress[team] = reached;
@@ -2332,32 +2504,50 @@ function deriveKnockout(apiFixtures) {
 }
 
 function applyApiScores(data) {
-  if (!data?.fixtures?.length) return countFinishedResults();
+  if (!data?.fixtures?.length && !data?.knockoutSchedule?.length) return countFinishedResults();
+
+  applyKnockoutSchedule(data.knockoutSchedule || []);
 
   const indexMap = {};
   fixtures.forEach((f, i) => { indexMap[`${f.h}|${f.a}`] = i; });
 
-  data.fixtures.forEach(af => {
+  const allApi = [...(data.fixtures || []), ...(data.knockoutSchedule || [])];
+
+  allApi.forEach(af => {
     if ((af.status !== 'FT' && af.status !== 'LIVE') || af.h == null || af.a == null) return;
     const home = mapApiTeam(af.home);
     const away = mapApiTeam(af.away);
-    if (!home || !away) return;
+    if (!home || !away || isPlaceholderTeam(home) || isPlaceholderTeam(away)) return;
     let idx = indexMap[`${home}|${away}`];
     let swapScores = false;
     if (idx == null) {
       idx = indexMap[`${away}|${home}`];
       swapScores = idx != null;
     }
+    if (idx == null && af.matchId) {
+      idx = fixtures.findIndex(f => String(f.mid) === String(af.matchId));
+      if (idx >= 0) {
+        const fix = fixtures[idx];
+        swapScores = fix.h === away && fix.a === home;
+      }
+    }
     if (idx == null) return;
     const h = swapScores ? af.a : af.h;
     const a = swapScores ? af.h : af.a;
+    const winner = resolveKoWinner(fixtures[idx], h, a, af);
+    const pens = af.pens || (h === a && winner);
     const prev = matchResults[idx];
     if (af.status === 'FT' || !prev?.h || prev.live) {
-      matchResults[idx] = { h, a, live: af.status === 'LIVE' };
+      matchResults[idx] = {
+        h, a, live: af.status === 'LIVE',
+        pens, winner,
+        homeWinner: swapScores ? af.awayWinner : af.homeWinner,
+        awayWinner: swapScores ? af.homeWinner : af.awayWinner,
+      };
     }
   });
 
-  const ko = deriveKnockout(data.fixtures);
+  const ko = deriveKnockout(allApi.filter(f => f.status === 'FT'));
   Object.keys(ko).forEach(team => { teamKnockout[team] = ko[team]; });
   persistResults();
   return countFinishedResults();
@@ -2422,6 +2612,7 @@ async function loadScores() {
 }
 
 function getMatchPoints(team, f, result) {
+  if (isKnockoutFixture(f)) return null;
   if (!result || result.h == null || result.a == null) return null;
   const isHome = f.h === team, isAway = f.a === team;
   if (!isHome && !isAway) return 0;
@@ -2447,6 +2638,12 @@ function getTeamMatchResult(team, f, result) {
   if (!result || result.h == null || result.a == null) return null;
   const isHome = f.h === team, isAway = f.a === team;
   if (!isHome && !isAway) return null;
+  if (isKnockoutFixture(f)) {
+    const w = matchWinnerFromResult(result);
+    if (!w) return result.h === result.a && !result.pens ? 'draw' : null;
+    if (w === 'home') return isHome ? 'win' : 'loss';
+    return isAway ? 'win' : 'loss';
+  }
   if (result.h === result.a) return 'draw';
   if ((isHome && result.h > result.a) || (isAway && result.a > result.h)) return 'win';
   return 'loss';
@@ -2456,6 +2653,7 @@ function calcSweepScore(person) {
   const teams = draw[person];
   let group = 0, knockout = 0, wins = 0, draws = 0, losses = 0;
   fixtures.forEach((f, i) => {
+    if (isKnockoutFixture(f)) return;
     const result = matchResults[i];
     if (!result || result.h == null || result.live) return;
     teams.forEach(t => {
@@ -2872,7 +3070,9 @@ function showPersonFixtures(person) {
   if (pickTab) pickTab.classList.add('active');
   const myNames = draw[person];
   const myTeams = myNames.map(n => getTeam(n));
-  const myFix = fixtures.map((f, i) => ({ ...f, idx: i })).filter(f => myNames.includes(f.h) || myNames.includes(f.a));
+  const myFix = sortFixturesByKickoff(
+    fixtureRowsWithIdx().filter(f => myNames.includes(f.h) || myNames.includes(f.a))
+  );
   const ac = avatarPalette[people.indexOf(person)];
   const score = calcSweepScore(person);
 
@@ -2886,7 +3086,10 @@ function showPersonFixtures(person) {
       const ko = teamKnockout[t.n];
       const koLabel = ko ? ` · ${ko === 'winner' ? '🏆 Winner' : ko.toUpperCase()}` : '';
       return `<div class="team-chip"><span class="flag" style="font-size:20px">${t.f}</span><span>${t.n}</span><span class="grp-badge">Grp ${t.g}${koLabel}</span></div>`;
-    }).join('') + `</div></div><div class="fix-body">`;
+    }).join('') + `</div></div><div class="fix-body">` +
+    (isKnockoutStageActive()
+      ? '<p class="pick-intro" style="margin:0 0 1rem;padding:0">Knockout stage — your teams\' knockout fixtures only.</p>'
+      : '');
 
   let lastDate = '';
   myFix.forEach(f => {
@@ -2900,20 +3103,20 @@ function showPersonFixtures(person) {
     }
     const showDate = fixtureDisplayDate(f);
     if (showDate !== lastDate) {
-      html += `<div class="date-head">${showDate}</div>`;
+      html += `<div class="date-head">${showDate}${isKnockoutFixture(f) ? ` · <span style="font-weight:500;color:var(--text-faint)">${f.ko}</span>` : ''}</div>`;
       lastDate = showDate;
     }
     const hOwned = myNames.includes(f.h);
     const aOwned = myNames.includes(f.a);
-    const hTeam = getTeam(f.h);
-    const aTeam = getTeam(f.a);
+    const hTeam = { n: f.h, f: teamFlag(f.h) };
+    const aTeam = { n: f.a, f: teamFlag(f.a) };
     const result = matchResults[f.idx];
     const highlight = hOwned || aOwned ? ' has-yours' : '';
 
     const mid = result && result.h != null
       ? `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-          <span class="fix-score">${result.h}–${result.a}${result.live ? ' <small style="color:var(--accent);font-size:9px">LIVE</small>' : ''}</span>
-          ${!result.live && (hOwned || aOwned) ? `<span class="pts-earned">+${getMatchPoints(hOwned ? f.h : f.a, f, result) || 0}</span>` : ''}
+          <span class="fix-score">${result.h}–${result.a}${result.live ? ' <small style="color:var(--accent);font-size:9px">LIVE</small>' : ''}${result.pens ? ' <small style="color:var(--text-faint);font-size:9px">(pens)</small>' : ''}</span>
+          ${!result.live && (hOwned || aOwned) && !isKnockoutFixture(f) ? `<span class="pts-earned">+${getMatchPoints(hOwned ? f.h : f.a, f, result) || 0}</span>` : ''}
         </div>`
       : '<span class="fix-vs">vs</span>';
     const kick = formatKickoffShort(f);
@@ -2944,7 +3147,8 @@ function showPersonFixtures(person) {
 function buildPicksSection() {
   const sec = document.getElementById('sec-picks');
   const player = picksPlayer();
-  const rows = fixtures.map((f, i) => ({ ...f, idx: i }));
+  const koStage = isKnockoutStageActive();
+  const rows = fixtureRowsWithIdx();
   const upcoming = rows.filter(f => !isMatchPlayed(f.idx));
   const played = rows.filter(f => isMatchPlayed(f.idx));
   const myPicked = player ? rows.filter(f => getSavedPick(player, f.idx)) : [];
@@ -2953,11 +3157,12 @@ function buildPicksSection() {
   if (picksFilter === 'upcoming') list = upcoming;
   if (picksFilter === 'played') list = played;
   if (picksFilter === 'mine') list = myPicked;
+  list = sortFixturesByKickoff(list, { descending: picksFilter === 'played' });
 
   const myPts = player ? calcPickPoints(player).total : 0;
 
   let html = `<div class="section-title">My picks</div>
-    <p class="pick-intro">Predict the winner <em>and</em> score for each match before kickoff. Picks lock <strong>1 hour before kickoff</strong> (times shown in your local timezone). One entry per match per person — prediction points are tracked separately on the <strong>Pick Board</strong>.</p>
+    <p class="pick-intro">Predict the winner <em>and</em> score for each match before kickoff. Picks lock <strong>1 hour before kickoff</strong> (times shown in your local timezone). One entry per match per person — prediction points are tracked separately on the <strong>Pick Board</strong>.${koStage ? ' <strong>Knockout stage</strong> — only knockout matches are shown here.' : ''}</p>
     <div class="person-tabs-wrap" style="margin-bottom:1rem">
       <div class="person-tabs-label">Who are you?</div>` +
     personSelectHtml('Who are you?', player, 'setPicksPlayer', 'Choose your name') +
@@ -2994,9 +3199,9 @@ function buildPicksSection() {
 
   if (!list.length) {
     const emptyMsg = picksFilter === 'upcoming'
-      ? 'No upcoming matches — group stage is complete.'
+      ? (koStage ? 'No upcoming knockout matches right now.' : 'No upcoming matches — group stage is complete.')
       : picksFilter === 'played'
-        ? 'No matches played yet. Check back after kickoff!'
+        ? (koStage ? 'No knockout matches played yet.' : 'No matches played yet. Check back after kickoff!')
         : player
           ? "You haven't saved any picks yet. Go to Upcoming and make your first pick."
           : 'Select your name above, then save picks from the Upcoming tab.';
@@ -3011,7 +3216,9 @@ function buildPicksSection() {
     const result = matchResults[f.idx];
     const done = isMatchPlayed(f.idx);
     const live = result?.live && result?.h != null;
-    const pts = saved && done ? scoreMemberPick(saved, result) : null;
+    const pts = saved && done ? scoreMemberPick(saved, result, f) : null;
+    const teamsPending = !teamsKnownForPick(f);
+    const metaLabel = fixtureMetaLabel(f);
 
     const showDate = fixtureDisplayDate(f);
     if (showDate !== lastDate) {
@@ -3020,20 +3227,22 @@ function buildPicksSection() {
     }
 
     const statusHtml = done
-      ? `<span class="pick-lock-timer calm">FT ${result.h}–${result.a}${pts != null ? ` · <span class="pick-result-pts">+${pts} pts</span>` : ''}</span>`
+      ? `<span class="pick-lock-timer calm">FT ${result.h}–${result.a}${result.pens ? ' (pens)' : ''}${pts != null ? ` · <span class="pick-result-pts">+${pts} pts</span>` : ''}</span>`
       : live
         ? `<span class="pick-lock-timer urgent">🔴 LIVE ${result.h}–${result.a}</span>`
         : pickLockTimerHtml(f.idx, f);
 
     html += `<div class="pick-card${lockedMatch ? ' locked' : ''}${saved ? ' saved' : ''}" data-pick-card="${f.idx}">
-      <div class="pick-meta"><span>Group ${f.g} · ${fixtureDisplayDate(f)}</span>${statusHtml}</div>
+      <div class="pick-meta"><span>${metaLabel} · ${fixtureDisplayDate(f)}</span>${statusHtml}</div>
       <div class="pick-match">
-        <div class="pick-team home"><span class="flag">${getTeam(f.h).f}</span><span class="name">${f.h}</span></div>
+        <div class="pick-team home"><span class="flag">${teamFlag(f.h)}</span><span class="name">${f.h}</span></div>
         <span class="pick-vs">vs</span>
-        <div class="pick-team away"><span class="flag">${getTeam(f.a).f}</span><span class="name">${f.a}</span></div>
+        <div class="pick-team away"><span class="flag">${teamFlag(f.a)}</span><span class="name">${f.a}</span></div>
       </div>`;
 
-    if (live) {
+    if (teamsPending && !done && !live) {
+      html += `<div class="pick-no-pick">Teams not confirmed yet — picks open once both sides are known.</div>`;
+    } else if (live) {
       if (saved) {
         html += `<div class="pick-saved-label">Your pick: ${pickOutcomeLabel(f, saved.pick)} · ${saved.scoreH}–${saved.scoreA} · Match in progress${pickPendingNote(saved)}</div>`;
       } else {
@@ -3048,14 +3257,14 @@ function buildPicksSection() {
       }
     } else if (saved && lockedMatch) {
       html += `<div class="pick-saved-label">✓ Your pick: ${pickOutcomeLabel(f, saved.pick)} · ${saved.scoreH}–${saved.scoreA} · Locked in${pickPendingNote(saved)}</div>`;
-    } else if (player && !lockedMatch) {
+    } else if (player && !lockedMatch && teamsKnownForPick(f)) {
       const pick = draft.pick || '';
       const scoreH = draft.scoreH ?? '';
       const scoreA = draft.scoreA ?? '';
       html += `<div class="pick-choices">
-        <button class="pick-choice${pick === 'home' ? ' active' : ''}" onclick="setPickDraft(${f.idx},'pick','home')">${getTeam(f.h).f} ${f.h}</button>
+        <button class="pick-choice${pick === 'home' ? ' active' : ''}" onclick="setPickDraft(${f.idx},'pick','home')">${teamFlag(f.h)} ${f.h}</button>
         <button class="pick-choice${pick === 'draw' ? ' active' : ''}" onclick="setPickDraft(${f.idx},'pick','draw')">Draw</button>
-        <button class="pick-choice${pick === 'away' ? ' active' : ''}" onclick="setPickDraft(${f.idx},'pick','away')">${getTeam(f.a).f} ${f.a}</button>
+        <button class="pick-choice${pick === 'away' ? ' active' : ''}" onclick="setPickDraft(${f.idx},'pick','away')">${teamFlag(f.a)} ${f.a}</button>
       </div>
       <div class="pick-score-row">
         <span>Score</span>
@@ -3092,7 +3301,7 @@ function buildGroupsSection() {
   });
   groupKeys.forEach(letter => {
     const teams = groupTeams[letter] || [];
-    const gFix = fixtures.filter(f => f.g === letter);
+    const gFix = sortFixturesByKickoff(fixtures.filter(f => f.g === letter));
     const card = document.createElement('div');
     card.className = 'group-card';
     card.innerHTML =
@@ -3144,6 +3353,8 @@ function buildGroupsSection() {
     sweep: 'sweep',
     fixtures: 'fixtures',
     groups: 'groups',
+    knockout: 'picks',
+    ko: 'picks',
     picks: 'picks',
     pickboard: 'pickboard',
   };

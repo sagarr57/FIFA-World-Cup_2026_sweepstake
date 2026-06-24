@@ -80,9 +80,41 @@ const FIXTURES = [
   { d: '28 Jun', t: '00:30' },
   { d: '27 Jun', t: '22:00' },
   { d: '27 Jun', t: '22:00' },
+  { d: '28 Jun', t: '20:00' },
+  { d: '29 Jun', t: '18:00' },
+  { d: '29 Jun', t: '21:30' },
+  { d: '30 Jun', t: '02:00' },
+  { d: '30 Jun', t: '18:00' },
+  { d: '30 Jun', t: '22:00' },
+  { d: '1 Jul', t: '02:00' },
+  { d: '1 Jul', t: '17:00' },
+  { d: '1 Jul', t: '21:00' },
+  { d: '2 Jul', t: '01:00' },
+  { d: '2 Jul', t: '20:00' },
+  { d: '3 Jul', t: '00:00' },
+  { d: '3 Jul', t: '04:00' },
+  { d: '3 Jul', t: '19:00' },
+  { d: '3 Jul', t: '23:00' },
+  { d: '4 Jul', t: '02:30' },
+  { d: '4 Jul', t: '18:00' },
+  { d: '4 Jul', t: '22:00' },
+  { d: '5 Jul', t: '21:00' },
+  { d: '6 Jul', t: '01:00' },
+  { d: '6 Jul', t: '20:00' },
+  { d: '7 Jul', t: '01:00' },
+  { d: '7 Jul', t: '17:00' },
+  { d: '7 Jul', t: '21:00' },
+  { d: '9 Jul', t: '21:00' },
+  { d: '10 Jul', t: '20:00' },
+  { d: '11 Jul', t: '22:00' },
+  { d: '12 Jul', t: '02:00' },
+  { d: '14 Jul', t: '20:00' },
+  { d: '15 Jul', t: '20:00' },
+  { d: '18 Jul', t: '22:00' },
+  { d: '19 Jul', t: '20:00' },
 ];
 
-const MONTHS = { Jun: 5 };
+const MONTHS = { Jun: 5, Jul: 6 };
 const LOCK_MS = 60 * 60 * 1000;
 
 const headers = {
@@ -176,13 +208,20 @@ exports.handler = async function (event) {
       if (!['home', 'away', 'draw'].includes(pick)) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Pick must be home, away, or draw' }) };
       }
+      const isKnockout = matchIdx >= 72;
       if (!Number.isInteger(scoreH) || !Number.isInteger(scoreA) || scoreH < 0 || scoreA > 9 || scoreH > 9 || scoreA < 0) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid score' }) };
       }
-      if (pick === 'home' && scoreH <= scoreA) {
+      if (pick === 'home' && scoreH < scoreA) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Home win needs higher or equal home score' }) };
+      }
+      if (pick === 'away' && scoreA < scoreH) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Away win needs higher or equal away score' }) };
+      }
+      if (!isKnockout && pick === 'home' && scoreH <= scoreA) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Home win needs higher home score' }) };
       }
-      if (pick === 'away' && scoreA <= scoreH) {
+      if (!isKnockout && pick === 'away' && scoreA <= scoreH) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Away win needs higher away score' }) };
       }
       if (pick === 'draw' && scoreH !== scoreA) {

@@ -1,4 +1,4 @@
-const CACHE_MS = 2 * 60 * 1000; // refresh every 2 min
+const CACHE_MS = 2 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 25000;
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
 const TOURNAMENT_START = '2026-06-11';
@@ -28,8 +28,18 @@ const TEAM_MAP = {
   'Democratic Republic of the Congo': 'DR Congo',
   'Congo DR': 'DR Congo',
   'Curaçao': 'Curacao',
+  'Cabo Verde': 'Cape Verde',
   'IR Iran': 'Iran',
   Türkiye: 'Turkey',
+};
+
+const KO_ROUND_LABEL = {
+  r32: 'Round of 32',
+  r16: 'Round of 16',
+  qf: 'Quarter-final',
+  sf: 'Semi-final',
+  final: 'Final',
+  third: 'Third-place',
 };
 
 function normTeam(name) {
@@ -47,7 +57,7 @@ function parseEspnStatus(name) {
   return 'NS';
 }
 
-function parseEspnEvents(data, sourceLabel) {
+function parseEspnEvents(data, sourceLabel, includeScheduled = false) {
   const fixtures = [];
   for (const event of data.events || []) {
     const comp = event.competitions?.[0];
@@ -57,31 +67,39 @@ function parseEspnEvents(data, sourceLabel) {
     if (!homeC || !awayC) continue;
 
     const status = parseEspnStatus(event.status?.type?.name);
-    if (status === 'NS') continue;
+    if (!includeScheduled && status === 'NS') continue;
+
     const h = parseInt(homeC.score, 10);
     const a = parseInt(awayC.score, 10);
+    const hasScore = !Number.isNaN(h) && !Number.isNaN(a);
+    const homeWinner = homeC.winner === true;
+    const awayWinner = awayC.winner === true;
+    const pens = status === 'FT' && hasScore && h === a && (homeWinner || awayWinner);
 
     fixtures.push({
       home: homeC.team?.displayName,
       away: awayC.team?.displayName,
-      h: Number.isNaN(h) ? null : h,
-      a: Number.isNaN(a) ? null : a,
+      h: hasScore ? h : null,
+      a: hasScore ? a : null,
       status,
       round: event.name || comp.notes?.[0]?.headline || 'Group Stage',
       source: sourceLabel,
-      homeWinner: homeC.winner === true,
-      awayWinner: awayC.winner === true,
+      homeWinner,
+      awayWinner,
+      pens,
+      kickoffUtc: event.date || null,
+      matchId: event.id || null,
     });
   }
   return fixtures;
 }
 
-async function fetchEspnScoreboard(dateYmd) {
+async function fetchEspnScoreboard(dateYmd, includeScheduled = false) {
   const url = dateYmd ? `${ESPN_BASE}?dates=${dateYmd}` : ESPN_BASE;
   const res = await fetch(url, FETCH_OPTS);
   if (!res.ok) throw new Error(`ESPN ${res.status}`);
   const data = await res.json();
-  return parseEspnEvents(data, dateYmd ? `espn:${dateYmd}` : 'espn');
+  return parseEspnEvents(data, dateYmd ? `espn:${dateYmd}` : 'espn', includeScheduled);
 }
 
 function tournamentDatesYmd() {
@@ -117,13 +135,38 @@ async function mapPool(items, limit, fn) {
   return results.flat();
 }
 
-async function fetchEspnHistory() {
+async function fetchEspnHistory(includeScheduled = false) {
   const dates = tournamentDatesYmd();
-  const batches = await mapPool(dates, 6, (d) => fetchEspnScoreboard(d));
+  const batches = await mapPool(dates, 6, (d) => fetchEspnScoreboard(d, includeScheduled));
   return batches;
 }
 
-async function fetchWorldCup26() {
+function wc26RoundLabel(g) {
+  if (g.type && g.type !== 'group') {
+    return KO_ROUND_LABEL[g.type] || g.group || 'Knockout';
+  }
+  return g.group ? `Group ${g.group}` : 'Group Stage';
+}
+
+function wc26TeamName(g, side) {
+  const idKey = side === 'home' ? 'home_team_id' : 'away_team_id';
+  const nameKey = side === 'home' ? 'home_team_name_en' : 'away_team_name_en';
+  const labelKey = side === 'home' ? 'home_team_label' : 'away_team_label';
+  const id = String(g[idKey] || '');
+  if (id && id !== '0' && g[nameKey]) return normTeam(g[nameKey]);
+  return g[labelKey] || 'TBD';
+}
+
+function parseWc26LocalDate(localDate) {
+  const m = String(localDate || '').match(/(\d+)\/(\d+)\/(\d+) (\d+):(\d+)/);
+  if (!m) return null;
+  const [, mm, dd, yyyy, hh, mi] = m;
+  // Venue-local stored as naive US time; convert via approximate offset per month is fragile.
+  // Prefer ISO from ESPN when merged; store raw for client u field from static fixtures.
+  return { yyyy, mm, dd, hh, mi };
+}
+
+async function fetchWorldCup26({ includeScheduled = false } = {}) {
   const [gamesRes, teamsRes] = await Promise.all([
     fetch('https://worldcup26.ir/get/games', FETCH_OPTS),
     fetch('https://worldcup26.ir/get/teams', FETCH_OPTS),
@@ -133,44 +176,71 @@ async function fetchWorldCup26() {
   const gamesData = await gamesRes.json();
   const teamsData = teamsRes.ok ? await teamsRes.json() : {};
   const games = gamesData.games || gamesData;
-  const teams = teamsData.teams || teamsData;
-  const idToName = {};
-  for (const t of teams) {
-    idToName[t.id] = t.name_en || t.name;
-  }
 
-  const fixtures = [];
+  const results = [];
+  const schedule = [];
+
   for (const g of games) {
+    const isGroup = g.type === 'group' || (!g.type && /^[A-L]$/i.test(String(g.group || '')));
+    const round = wc26RoundLabel(g);
+    const home = wc26TeamName(g, 'home');
+    const away = wc26TeamName(g, 'away');
+
     const finished = String(g.finished || '').toUpperCase() === 'TRUE';
-    const hRaw = g.home_score;
-    const aRaw = g.away_score;
-    const h = parseInt(hRaw, 10);
-    const a = parseInt(aRaw, 10);
+    const h = parseInt(g.home_score, 10);
+    const a = parseInt(g.away_score, 10);
     const hasNumericScore = !Number.isNaN(h) && !Number.isNaN(a);
     const elapsed = parseInt(g.time_elapsed, 10);
     const inProgress = !finished && hasNumericScore && elapsed > 0 && elapsed < 120;
-    const status = finished ? 'FT' : inProgress ? 'LIVE' : 'NS';
-    if (status === 'NS') continue;
+    let status = finished ? 'FT' : inProgress ? 'LIVE' : 'NS';
 
-    const home = idToName[g.home_team_id];
-    const away = idToName[g.away_team_id];
-
-    fixtures.push({
+    const entry = {
       home,
       away,
-      h: Number.isNaN(h) ? null : h,
-      a: Number.isNaN(a) ? null : a,
+      h: hasNumericScore ? h : null,
+      a: hasNumericScore ? a : null,
       status,
-      round: g.group ? `Group ${g.group}` : 'Group Stage',
+      round,
       source: 'worldcup26',
-      homeWinner: finished && h > a,
-      awayWinner: finished && a > h,
-    });
+      matchId: g.id || null,
+      wc26Type: g.type || (isGroup ? 'group' : 'ko'),
+      localDate: g.local_date || null,
+      homeWinner: false,
+      awayWinner: false,
+      pens: false,
+    };
+
+    if (status === 'FT' && hasNumericScore) {
+      if (h > a) entry.homeWinner = true;
+      else if (a > h) entry.awayWinner = true;
+    }
+
+    if (!isGroup) schedule.push({ ...entry });
+
+    if (status === 'NS' && !includeScheduled) continue;
+    if (isGroup && status === 'NS') continue;
+
+    results.push(entry);
   }
-  return fixtures;
+
+  return { results, schedule };
 }
 
 const STATUS_RANK = { FT: 3, LIVE: 2, NS: 1 };
+
+function applyEspnWinners(target, espnFixture) {
+  if (!espnFixture || espnFixture.status !== 'FT') return;
+  if (espnFixture.homeWinner) {
+    target.homeWinner = true;
+    target.awayWinner = false;
+    if (target.h != null && target.a != null && target.h === target.a) target.pens = true;
+  } else if (espnFixture.awayWinner) {
+    target.awayWinner = true;
+    target.homeWinner = false;
+    if (target.h != null && target.a != null && target.h === target.a) target.pens = true;
+  }
+  if (espnFixture.kickoffUtc) target.kickoffUtc = espnFixture.kickoffUtc;
+}
 
 function pickBetterFixture(prev, next) {
   if (!prev) return next;
@@ -178,12 +248,11 @@ function pickBetterFixture(prev, next) {
   const nextRank = STATUS_RANK[next.status] || 0;
   if (nextRank > prevRank) return next;
   if (nextRank < prevRank) return prev;
-  // Prefer live ESPN over static wc26 when both LIVE
   if (next.status === 'LIVE' && String(next.source).startsWith('espn')) return next;
   if (prev.status === 'LIVE' && String(prev.source).startsWith('espn')) return prev;
-  // Prefer worldcup26 for finished historical completeness
   if (next.status === 'FT' && next.source === 'worldcup26') return next;
   if (prev.status === 'FT' && prev.source === 'worldcup26') return prev;
+  if (next.homeWinner || next.awayWinner) return { ...next, h: next.h ?? prev.h, a: next.a ?? prev.a };
   return next;
 }
 
@@ -192,11 +261,50 @@ function mergeFixtures(...lists) {
   for (const list of lists) {
     for (const f of list) {
       const key = fixtureKey(f.home, f.away);
-      if (key === 'null|null') continue;
-      map.set(key, pickBetterFixture(map.get(key), f));
+      if (key === 'null|null' || key.includes('TBD') || key.includes('Winner') || key.includes('Runner-up') || key.includes('Loser') || key.includes('3rd Group')) continue;
+      const merged = pickBetterFixture(map.get(key), f);
+      map.set(key, merged);
     }
   }
   return [...map.values()];
+}
+
+function mergeEspnIntoList(baseList, espnList) {
+  const espnMap = new Map();
+  for (const f of espnList) {
+    const key = fixtureKey(f.home, f.away);
+    if (key === 'null|null') continue;
+    espnMap.set(key, f);
+    espnMap.set(`${normTeam(f.away)}|${normTeam(f.home)}`, f);
+  }
+  return baseList.map((f) => {
+    const key = fixtureKey(f.home, f.away);
+    const espn = espnMap.get(key);
+    if (!espn) return f;
+    const out = { ...f };
+    if (espn.h != null) out.h = espn.h;
+    if (espn.a != null) out.a = espn.a;
+    if (espn.status === 'FT' || espn.status === 'LIVE') out.status = espn.status;
+    applyEspnWinners(out, espn);
+    return out;
+  });
+}
+
+function enrichKnockoutSchedule(schedule, espnAll, results) {
+  const resultMap = new Map();
+  [...results, ...espnAll].forEach((f) => {
+    const key = fixtureKey(f.home, f.away);
+    if (key !== 'null|null') resultMap.set(key, f);
+  });
+
+  return schedule.map((slot) => {
+    const key = fixtureKey(slot.home, slot.away);
+    const live = resultMap.get(key);
+    if (!live) return slot;
+    const out = { ...slot, ...live, round: slot.round || live.round };
+    applyEspnWinners(out, live);
+    return out;
+  });
 }
 
 exports.handler = async function () {
@@ -205,28 +313,32 @@ exports.handler = async function () {
   }
 
   try {
-    const [wc26, espnLive, espnHistory] = await Promise.all([
-      fetchWorldCup26().catch((e) => { console.error('WC26:', e.message); return []; }),
-      fetchEspnScoreboard().catch((e) => { console.error('ESPN live:', e.message); return []; }),
-      fetchEspnHistory().catch((e) => { console.error('ESPN history:', e.message); return []; }),
+    const [wc26Data, espnLive, espnHistory] = await Promise.all([
+      fetchWorldCup26({ includeScheduled: true }).catch((e) => { console.error('WC26:', e.message); return { results: [], schedule: [] }; }),
+      fetchEspnScoreboard(null, true).catch((e) => { console.error('ESPN live:', e.message); return []; }),
+      fetchEspnHistory(true).catch((e) => { console.error('ESPN history:', e.message); return []; }),
     ]);
 
-    const fixtures = mergeFixtures(wc26, espnHistory, espnLive);
+    const espnAll = [...espnHistory, ...espnLive];
+    const wc26Results = mergeEspnIntoList(wc26Data.results, espnAll);
+    const fixtures = mergeFixtures(wc26Results, espnAll.filter((f) => f.status !== 'NS'));
+    const knockoutSchedule = enrichKnockoutSchedule(wc26Data.schedule, espnAll, fixtures);
+
     const finished = fixtures.filter((f) => f.status === 'FT').length;
     const live = fixtures.filter((f) => f.status === 'LIVE').length;
     const sourceSet = new Set(fixtures.map((f) => f.source?.split(':')[0] || f.source));
 
     const payload = {
       fixtures,
+      knockoutSchedule,
       updatedAt: new Date().toISOString(),
       error: fixtures.length ? null : 'No match data available right now',
       season: 2026,
       sources: [...sourceSet],
-      stats: { total: fixtures.length, finished, live },
+      stats: { total: fixtures.length, finished, live, knockoutSlots: knockoutSchedule.length },
     };
 
-    // Never cache empty responses — avoids blanking pick/sweep boards for 2 min after a blip
-    if (fixtures.length > 0) cache = { data: payload, ts: Date.now() };
+    if (fixtures.length > 0 || knockoutSchedule.length > 0) cache = { data: payload, ts: Date.now() };
     else if (cache.data?.fixtures?.length) {
       return { statusCode: 200, headers, body: JSON.stringify(cache.data) };
     }
@@ -239,6 +351,7 @@ exports.handler = async function () {
       body: JSON.stringify({
         error: err.message,
         fixtures: [],
+        knockoutSchedule: [],
         updatedAt: new Date().toISOString(),
         sources: ['espn', 'worldcup26'],
       }),
