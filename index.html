@@ -2141,12 +2141,17 @@ function pickOutcomeLabel(f, pick) {
 
 function scoreMemberPick(pick, result, f) {
   if (!pick || !result || result.h == null || result.a == null) return 0;
+  const koPensPending = isKnockoutFixture(f) && result.h === result.a && result.pens && !matchWinnerFromResult(result);
+  if (koPensPending) return 0;
+
   let actual = matchWinnerFromResult(result);
   if (!actual) actual = result.h === result.a ? 'draw' : result.h > result.a ? 'home' : 'away';
+
   let pts = 0;
   if (pick.pick === actual) pts += PICK_SCORING.winner;
   const predDiff = pick.scoreH - pick.scoreA;
   const actualDiff = result.h - result.a;
+  // Goal diff / exact score use 90-minute (regulation) score only
   if (actual !== 'draw' && pick.pick === actual && predDiff === actualDiff) pts += PICK_SCORING.goalDiff;
   if (pick.scoreH === result.h && pick.scoreA === result.a) pts += PICK_SCORING.exactScore;
   return pts;
@@ -3199,7 +3204,7 @@ function buildPicksSection() {
   const myPts = player ? calcPickPoints(player).total : 0;
 
   let html = `<div class="section-title">My picks</div>
-    <p class="pick-intro">Predict the winner <em>and</em> score for each match before kickoff. Picks lock <strong>1 hour before kickoff</strong> (times shown in your local timezone). One entry per match per person — prediction points are tracked separately on the <strong>Pick Board</strong>.${koStage ? ' <strong>Knockout stage</strong> — only knockout matches are shown here.' : ''}</p>
+    <p class="pick-intro">Predict the winner <em>and</em> score for each match before kickoff. Picks lock <strong>1 hour before kickoff</strong> (times shown in your local timezone). One entry per match per person — prediction points are tracked separately on the <strong>Pick Board</strong>.${koStage ? ' <strong>Knockout stage</strong> — only knockout matches are shown here. Ties after 90 minutes go to <strong>penalties</strong>: pick the team you think advances (e.g. 1–1 + your winner = win on pens). Winner points use the pen result; exact score uses the 90-minute score.' : ''}</p>
     <div class="person-tabs-wrap" style="margin-bottom:1rem">
       <div class="person-tabs-label">Who are you?</div>` +
     personSelectHtml('Who are you?', player, 'setPicksPlayer', 'Choose your name') +
