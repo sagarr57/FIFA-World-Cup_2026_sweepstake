@@ -1852,8 +1852,20 @@ function firstKnockoutKickoffMs() {
   return Math.min(...ko.map(fixtureKickoffMs));
 }
 
+function lastGroupKickoffMs() {
+  const group = fixtures.filter(f => !isKnockoutFixture(f));
+  if (!group.length) return 0;
+  return Math.max(...group.map(fixtureKickoffMs));
+}
+
+function isGroupStageComplete() {
+  return fixtures.every((f, i) => isKnockoutFixture(f) || isMatchPlayed(i));
+}
+
 function isKnockoutStageActive() {
-  return Date.now() >= firstKnockoutKickoffMs();
+  if (isGroupStageComplete()) return true;
+  // Group stage schedule finished — show KO bracket for picks before first R32 kicks off
+  return Date.now() >= lastGroupKickoffMs();
 }
 
 function isFixtureVisibleInSchedule(f) {
@@ -1870,7 +1882,7 @@ function fixtureMetaLabel(f) {
 
 function isPlaceholderTeam(name) {
   if (!name) return true;
-  return /^(TBD|Winner|Runner-up|Loser|3rd Group)/i.test(name);
+  return /^(TBD|Winner|Runner-up|Loser|3rd Group|Winner Match|Loser Match)/i.test(name);
 }
 
 function teamsKnownForPick(f) {
@@ -2431,18 +2443,28 @@ function resolveKoWinner(f, h, a, af) {
   return null;
 }
 
+function scheduleSlotKickoffMs(slot) {
+  if (slot.kickoffUtc) return Date.parse(slot.kickoffUtc);
+  return null;
+}
+
 function applyKnockoutSchedule(schedule) {
   if (!schedule?.length) return;
   const byMid = new Map();
+  const byKickoff = new Map();
   schedule.forEach(s => {
     if (s.matchId) byMid.set(String(s.matchId), s);
+    const kms = scheduleSlotKickoffMs(s);
+    if (kms != null && !Number.isNaN(kms)) byKickoff.set(kms, s);
   });
 
   fixtures.forEach((f, i) => {
     if (!isKnockoutFixture(f)) return;
-    const slot = byMid.get(String(f.mid)) || schedule.find(s =>
-      s.round === f.ko && fixtureKeyLoose(s.home, s.away, f.h, f.a)
-    );
+    const fk = fixtureKickoffMs(f);
+    const slot = byMid.get(String(f.mid))
+      || byKickoff.get(fk)
+      || schedule.find(s => s.round === f.ko && Math.abs((scheduleSlotKickoffMs(s) || 0) - fk) < 120000)
+      || schedule.find(s => s.round === f.ko && fixtureKeyLoose(s.home, s.away, f.h, f.a));
     if (!slot) return;
 
     const home = mapApiTeam(slot.home) || slot.home;
@@ -2453,7 +2475,7 @@ function applyKnockoutSchedule(schedule) {
     if ((slot.status === 'FT' || slot.status === 'LIVE') && slot.h != null && slot.a != null) {
       let h = slot.h;
       let a = slot.a;
-      const swap = f.h !== home && f.h === away;
+      const swap = f.h === away && f.a === home;
       if (swap) { h = slot.a; a = slot.h; }
       const prev = matchResults[i];
       const winner = resolveKoWinner(f, h, a, slot);
@@ -2462,7 +2484,8 @@ function applyKnockoutSchedule(schedule) {
         matchResults[i] = {
           h, a, live: slot.status === 'LIVE',
           pens, winner,
-          homeWinner: slot.homeWinner, awayWinner: slot.awayWinner,
+          homeWinner: swap ? slot.awayWinner : slot.homeWinner,
+          awayWinner: swap ? slot.homeWinner : slot.awayWinner,
         };
       }
     }
@@ -2501,6 +2524,17 @@ function deriveKnockout(apiFixtures) {
     });
   });
   return progress;
+}
+
+function markGroupStageQualifiers(schedule) {
+  (schedule || []).forEach(slot => {
+    if (!/round of 32/i.test(slot.round || '')) return;
+    [slot.home, slot.away].forEach(name => {
+      const team = mapApiTeam(name) || name;
+      if (!team || isPlaceholderTeam(team)) return;
+      if (!teamKnockout[team]) teamKnockout[team] = 'r32';
+    });
+  });
 }
 
 function applyApiScores(data) {
@@ -2549,6 +2583,9 @@ function applyApiScores(data) {
 
   const ko = deriveKnockout(allApi.filter(f => f.status === 'FT'));
   Object.keys(ko).forEach(team => { teamKnockout[team] = ko[team]; });
+  if (isKnockoutStageActive() || isGroupStageComplete()) {
+    markGroupStageQualifiers(data.knockoutSchedule || []);
+  }
   persistResults();
   return countFinishedResults();
 }
